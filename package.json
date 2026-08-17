@@ -1,0 +1,22 @@
+{
+  "name": "linda-ion-food-directory",
+  "version": "1.0.0",
+  "description": "ION Orchard Dining Guide - Hello Kitty Theme created by Linda Kang",
+  "author": "Linda Kang <ahkang73@yahoo.com.sg>",
+  "license": "MIT",
+  "scripts": {
+    "start": "python -m http.server 3000"
+  },
+  "keywords": [
+    "food",
+    "dining",
+    "ion-orchard",
+    "singapore",
+    "restaurants",
+    "directory"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/linda-ion-food-directory.git"
+  }
+}

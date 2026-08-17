@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ION Orchard Dining Guide - Created by Linda Kang</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Trebuchet MS', sans-serif;
+            background: linear-gradient(135deg, #fff0f5 0%, #ffe4f0 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #ffb6d9 0%, #ffc0e0 50%, #fff0f5 100%);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 5px solid #ff69b4;
+            box-shadow: 0 4px 6px rgba(255, 105, 180, 0.2);
+        }
+
+        .creator-credit {
+            font-size: 12px;
+            color: #d946a6;
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .header h1 {
+            color: #ff1493;
+            font-size: 48px;
+            text-shadow: 2px 2px 4px rgba(255, 105, 180, 0.3);
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #ff69b4;
+            font-size: 16px;
+        }
+
+        .whatsapp-link {
+            display: inline-block;
+            background: #25D366;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(37, 211, 102, 0.3);
+        }
+
+        .whatsapp-link:hover {
+            background: #1ebd56;
+            transform: scale(1.05);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 16px rgba(255, 105, 180, 0.15);
+            border: 3px dashed #ffb6d9;
+        }
+
+        .filter-section h2 {
+            color: #ff1493;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .filter-group {
+            margin-bottom: 20px;
+        }
+
+        .filter-group label {
+            display: block;
+            color: #ff69b4;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .filter-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .filter-options input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .filter-options label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0;
+            font-weight: normal;
+            cursor: pointer;
+            color: #333;
+        }
+
+        .filter-options input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ffb6d9;
+            border-radius: 10px;
+            font-family: 'Comic Sans MS', sans-serif;
+        }
+
+        /* Restaurant Grid */
+        .restaurants-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        /* Restaurant Card */
+        .restaurant-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(255, 105, 180, 0.2);
+            transition: all 0.3s ease;
+            border: 3px solid #ffe4f0;
+        }
+
+        .restaurant-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 12px 24px rgba(255, 105, 180, 0.3);
+            border-color: #ff69b4;
+        }
+
+        .restaurant-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #ffb6d9 0%, #ffc0e0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            color: white;
+            font-weight: bold;
+            border-bottom: 3px solid #ff69b4;
+        }
+
+        .restaurant-content {
+            padding: 20px;
+        }
+
+        .restaurant-name {
+            color: #ff1493;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .restaurant-cuisine {
+            color: #ff69b4;
+            font-size: 13px;
+            display: inline-block;
+            background: #fff0f5;
+            padding: 4px 8px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+
+        .restaurant-details {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .restaurant-details p {
+            margin-bottom: 6px;
+        }
+
+        .price-range {
+            color: #ff1493;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .rating-section {
+            background: #fff0f5;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+        }
+
+        .rating {
+            color: #ff69b4;
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .review-count {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Comic Sans MS', sans-serif;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn-reserve {
+            background: #ff69b4;
+            color: white;
+        }
+
+        .btn-reserve:hover {
+            background: #ff1493;
+            transform: scale(1.05);
+        }
+
+        .btn-maps {
+            background: #ffb6d9;
+            color: #ff1493;
+        }
+
+        .btn-maps:hover {
+            background: #ff69b4;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        /* Hidden/Show Logic */
+        .hidden {
+            display: none;
+        }
+
+        /* Stats */
+        .stats {
+            text-align: center;
+            margin: 20px 0;
+            color: #ff69b4;
+            font-weight: bold;
+        }
+
+        /* No Results */
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #ff69b4;
+            font-size: 18px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 32px;
+            }
+
+            .restaurants-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-options {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Decorative Elements */
+        .decoration {
+            text-align: center;
+            font-size: 24px;
+            margin: 20px 0;
+            opacity: 0.6;
+        }
+
+        /* Random Pick Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 105, 180, 0.3);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #fff0f5 0%, #ffe4f0 100%);
+            padding: 40px;
+            border-radius: 30px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(255, 105, 180, 0.4);
+            border: 5px solid #ff69b4;
+            max-width: 500px;
+            animation: scaleIn 0.4s ease;
+            position: relative;
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-content h2 {
+            color: #ff1493;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        .modal-emoji {
+            font-size: 80px;
+            margin: 20px 0;
+            animation: bounce 0.6s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .modal-restaurant-name {
+            color: #ff1493;
+            font-size: 32px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .modal-details {
+            color: #666;
+            font-size: 16px;
+            margin: 15px 0;
+            line-height: 1.8;
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .modal-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'Comic Sans MS', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-maps {
+            background: #ffb6d9;
+            color: #ff1493;
+        }
+
+        .modal-btn-maps:hover {
+            background: #ff69b4;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .modal-btn-close {
+            background: #ff69b4;
+            color: white;
+        }
+
+        .modal-btn-close:hover {
+            background: #ff1493;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="creator-credit">✨ Created by Linda Kang ✨</div>
+        <h1>🎀 ION Orchard Dining Guide 🎀</h1>
+        <p>Discover Amazing Food at ION Orchard</p>
+        <a href="https://wa.me/6585112574" class="whatsapp-link">💬 Chat with Me on WhatsApp</a>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h2>🔍 Find Your Perfect Meal</h2>
+
+            <div class="filter-group">
+                <label>Search by Restaurant Name</label>
+                <input type="text" id="searchInput" placeholder="Type restaurant name..." class="filter-options">
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div class="filter-group">
+                    <label>Filter by Cuisine 🍽️</label>
+                    <div class="filter-options" style="display: flex; flex-direction: column;">
+                        <label><input type="checkbox" class="cuisine-filter" value="Asian"> Asian</label>
+                        <label><input type="checkbox" class="cuisine-filter" value="Chinese"> Chinese</label>
+                        <label><input type="checkbox" class="cuisine-filter" value="Japanese"> Japanese</label>
+                        <label><input type="checkbox" class="cuisine-filter" value="Korean"> Korean</label>
+                        <label><input type="checkbox" class="cuisine-filter" value="Italian"> Italian</label>
+                        <label><input type="checkbox" class="cuisine-filter" value="Seafood"> Seafood</label>
+                        <label><input type="checkbox" class="cuisine-filter" value="Cafe"> Cafe & Desserts</label>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label>Filter by Price Range 💰</label>
+                    <div class="filter-options" style="display: flex; flex-direction: column;">
+                        <label><input type="checkbox" class="price-filter" value="$"> $ (Under $20)</label>
+                        <label><input type="checkbox" class="price-filter" value="$$"> $$ ($20-50)</label>
+                        <label><input type="checkbox" class="price-filter" value="$$$"> $$$ ($50-100)</label>
+                        <label><input type="checkbox" class="price-filter" value="$$$$"> $$$$ (Over $100)</label>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <button id="resetBtn" style="padding: 10px 20px; background: #ff69b4; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-family: 'Comic Sans MS', sans-serif;">Clear All Filters</button>
+                <button id="randomBtn" style="padding: 10px 20px; background: #ff1493; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-family: 'Comic Sans MS', sans-serif; transition: all 0.3s ease;">🎲 Surprise Me!</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <span id="resultCount">Showing 18 restaurants</span>
+        </div>
+
+        <!-- No Results Message -->
+        <div id="noResults" class="no-results hidden">
+            No restaurants found. Try adjusting your filters! 😊
+        </div>
+
+        <!-- Restaurant Grid -->
+        <div class="restaurants-grid" id="restaurantsGrid">
+            <!-- Cards will be populated by JavaScript -->
+        </div>
+
+        <div class="decoration">✨ 🍔 🍜 🍱 🍰 ✨</div>
+    </div>
+
+    <!-- Random Pick Modal -->
+    <div id="randomModal" class="modal">
+        <div class="modal-content">
+            <h2>🎲 Lucky Pick! 🎲</h2>
+            <div class="modal-emoji" id="modalEmoji">🎪</div>
+            <div class="modal-restaurant-name" id="modalRestaurantName">Restaurant Name</div>
+            <div class="modal-details">
+                <p><strong>Cuisine:</strong> <span id="modalCuisine">—</span></p>
+                <p><strong>Location:</strong> <span id="modalLocation">—</span></p>
+                <p><strong>Price Range:</strong> <span id="modalPrice" style="color: #ff1493;">—</span></p>
+                <p><strong>Rating:</strong> ⭐ <span id="modalRating">—</span> / 5.0</p>
+            </div>
+            <div class="modal-buttons">
+                <a href="#" id="modalMapsBtn" class="modal-btn modal-btn-maps" target="_blank">🗺️ Open Maps</a>
+                <button class="modal-btn modal-btn-close" onclick="closeRandomModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Restaurant Data
+        const restaurants = [
+            {
+                id: 1,
+                name: "BAO BAO",
+                cuisine: "Asian",
+                price: "$",
+                location: "B4-34",
+                rating: 4.5,
+                reviews: 280,
+                emoji: "🥟"
+            },
+            {
+                id: 2,
+                name: "1-ATICO BY 1-ALTITUDE",
+                cuisine: "Italian",
+                price: "$$$$",
+                location: "#55-01, #56-01",
+                rating: 4.8,
+                reviews: 450,
+                emoji: "🍝"
+            },
+            {
+                id: 3,
+                name: "108 MATCHA SARO",
+                cuisine: "Japanese",
+                price: "$$",
+                location: "B4-70",
+                rating: 4.3,
+                reviews: 320,
+                emoji: "🍵"
+            },
+            {
+                id: 4,
+                name: "7-ELEVEN",
+                cuisine: "Cafe",
+                price: "$",
+                location: "B2-72",
+                rating: 4.0,
+                reviews: 150,
+                emoji: "☕"
+            },
+            {
+                id: 5,
+                name: "AWFULLY CHOCOLATE",
+                cuisine: "Cafe",
+                price: "$$",
+                location: "B4-50",
+                rating: 4.7,
+                reviews: 380,
+                emoji: "🍫"
+            },
+            {
+                id: 6,
+                name: "BACHA COFFEE",
+                cuisine: "Cafe",
+                price: "$$",
+                location: "#01-15/16",
+                rating: 4.6,
+                reviews: 290,
+                emoji: "☕"
+            },
+            {
+                id: 7,
+                name: "BENGAWAN SOLO",
+                cuisine: "Asian",
+                price: "$",
+                location: "B4-38",
+                rating: 4.4,
+                reviews: 215,
+                emoji: "🥘"
+            },
+            {
+                id: 8,
+                name: "BOOST",
+                cuisine: "Cafe",
+                price: "$",
+                location: "B4-64/65",
+                rating: 4.2,
+                reviews: 180,
+                emoji: "🥤"
+            },
+            {
+                id: 9,
+                name: "CRYSTAL JADE",
+                cuisine: "Chinese",
+                price: "$$",
+                location: "L1-20",
+                rating: 4.6,
+                reviews: 520,
+                emoji: "🍜"
+            },
+            {
+                id: 10,
+                name: "DARLING HARBOUR",
+                cuisine: "Seafood",
+                price: "$$$",
+                location: "L2-15",
+                rating: 4.7,
+                reviews: 410,
+                emoji: "🦞"
+            },
+            {
+                id: 11,
+                name: "EATBOX",
+                cuisine: "Asian",
+                price: "$$",
+                location: "B4-55",
+                rating: 4.3,
+                reviews: 245,
+                emoji: "🍱"
+            },
+            {
+                id: 12,
+                name: "FLAMING PRAWN",
+                cuisine: "Seafood",
+                price: "$$$",
+                location: "L4-22",
+                rating: 4.5,
+                reviews: 380,
+                emoji: "🦐"
+            },
+            {
+                id: 13,
+                name: "GINZA SUSHI",
+                cuisine: "Japanese",
+                price: "$$$",
+                location: "L3-30",
+                rating: 4.8,
+                reviews: 550,
+                emoji: "🍣"
+            },
+            {
+                id: 14,
+                name: "HANAMARU UDON",
+                cuisine: "Japanese",
+                price: "$$",
+                location: "B4-45",
+                rating: 4.4,
+                reviews: 310,
+                emoji: "🍜"
+            },
+            {
+                id: 15,
+                name: "IMPERIAL TREASURE",
+                cuisine: "Chinese",
+                price: "$$$",
+                location: "L5-32",
+                rating: 4.7,
+                reviews: 620,
+                emoji: "🍲"
+            },
+            {
+                id: 16,
+                name: "JJIM-JIL-BANG KOREAN",
+                cuisine: "Korean",
+                price: "$$",
+                location: "L2-40",
+                rating: 4.5,
+                reviews: 380,
+                emoji: "🍖"
+            },
+            {
+                id: 17,
+                name: "KATSUSANDO SANDWICHES",
+                cuisine: "Japanese",
+                price: "$$",
+                location: "B4-35",
+                rating: 4.4,
+                reviews: 220,
+                emoji: "🥪"
+            },
+            {
+                id: 18,
+                name: "LIKE A BIRD CAFE",
+                cuisine: "Cafe",
+                price: "$$",
+                location: "L1-32",
+                rating: 4.6,
+                reviews: 340,
+                emoji: "🐦"
+            }
+        ];
+
+        // Render Restaurants
+        function renderRestaurants(filteredData = restaurants) {
+            const grid = document.getElementById('restaurantsGrid');
+            const noResults = document.getElementById('noResults');
+            const resultCount = document.getElementById('resultCount');
+
+            grid.innerHTML = '';
+
+            if (filteredData.length === 0) {
+                noResults.classList.remove('hidden');
+                resultCount.textContent = 'No restaurants found';
+                return;
+            }
+
+            noResults.classList.add('hidden');
+            resultCount.textContent = `Showing ${filteredData.length} restaurants`;
+
+            filteredData.forEach(restaurant => {
+                const priceDisplay = restaurant.price;
+                const card = document.createElement('div');
+                card.className = 'restaurant-card';
+                card.innerHTML = `
+                    <div class="restaurant-image">${restaurant.emoji}</div>
+                    <div class="restaurant-content">
+                        <div class="restaurant-name">${restaurant.name}</div>
+                        <div class="restaurant-cuisine">${restaurant.cuisine}</div>
+                        <div class="restaurant-details">
+                            <p><strong>Location:</strong> ${restaurant.location}</p>
+                            <p><strong>Price Range:</strong> <span class="price-range">${priceDisplay}</span></p>
+                        </div>
+                        <div class="rating-section">
+                            <div class="rating">⭐ ${restaurant.rating} / 5.0</div>
+                            <div class="review-count">${restaurant.reviews} Google Reviews</div>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-reserve" onclick="alert('📞 Reservation feature: Connect to the restaurant at ${restaurant.name} via phone or their website!')">📞 Reserve</button>
+                            <a href="https://www.google.com/maps/search/${encodeURIComponent(restaurant.name + ' Singapore')}" target="_blank" class="btn btn-maps">🗺️ Maps</a>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Filter Logic
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const cuisineFilters = Array.from(document.querySelectorAll('.cuisine-filter:checked')).map(el => el.value);
+            const priceFilters = Array.from(document.querySelectorAll('.price-filter:checked')).map(el => el.value);
+
+            let filtered = restaurants.filter(restaurant => {
+                const matchesSearch = restaurant.name.toLowerCase().includes(searchTerm);
+                const matchesCuisine = cuisineFilters.length === 0 || cuisineFilters.includes(restaurant.cuisine);
+                const matchesPrice = priceFilters.length === 0 || priceFilters.includes(restaurant.price);
+
+                return matchesSearch && matchesCuisine && matchesPrice;
+            });
+
+            renderRestaurants(filtered);
+        }
+
+        // Event Listeners
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.querySelectorAll('.cuisine-filter').forEach(checkbox => {
+            checkbox.addEventListener('change', applyFilters);
+        });
+        document.querySelectorAll('.price-filter').forEach(checkbox => {
+            checkbox.addEventListener('change', applyFilters);
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('searchInput').value = '';
+            document.querySelectorAll('.cuisine-filter, .price-filter').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            renderRestaurants();
+        });
+
+        // Random Pick Function
+        function getRandomPick() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const cuisineFilters = Array.from(document.querySelectorAll('.cuisine-filter:checked')).map(el => el.value);
+            const priceFilters = Array.from(document.querySelectorAll('.price-filter:checked')).map(el => el.value);
+
+            let filtered = restaurants.filter(restaurant => {
+                const matchesSearch = restaurant.name.toLowerCase().includes(searchTerm);
+                const matchesCuisine = cuisineFilters.length === 0 || cuisineFilters.includes(restaurant.cuisine);
+                const matchesPrice = priceFilters.length === 0 || priceFilters.includes(restaurant.price);
+
+                return matchesSearch && matchesCuisine && matchesPrice;
+            });
+
+            if (filtered.length === 0) {
+                alert('No restaurants match your filters! Try adjusting them. 😊');
+                return null;
+            }
+
+            return filtered[Math.floor(Math.random() * filtered.length)];
+        }
+
+        function openRandomModal(restaurant) {
+            document.getElementById('modalEmoji').textContent = restaurant.emoji;
+            document.getElementById('modalRestaurantName').textContent = restaurant.name;
+            document.getElementById('modalCuisine').textContent = restaurant.cuisine;
+            document.getElementById('modalLocation').textContent = restaurant.location;
+            document.getElementById('modalPrice').textContent = restaurant.price;
+            document.getElementById('modalRating').textContent = restaurant.rating;
+            document.getElementById('modalMapsBtn').href = `https://www.google.com/maps/search/${encodeURIComponent(restaurant.name + ' Singapore')}`;
+
+            document.getElementById('randomModal').classList.add('show');
+        }
+
+        function closeRandomModal() {
+            document.getElementById('randomModal').classList.remove('show');
+        }
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('randomModal');
+            if (event.target == modal) {
+                closeRandomModal();
+            }
+        });
+
+        // Random Button Event Listener
+        document.getElementById('randomBtn').addEventListener('click', () => {
+            const randomRestaurant = getRandomPick();
+            if (randomRestaurant) {
+                openRandomModal(randomRestaurant);
+            }
+        });
+
+        // Initial Render
+        renderRestaurants();
+    </script>
+</body>
+</html>
