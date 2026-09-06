@@ -1,9 +1,17 @@
 {
-  "name": "Linda's ION Orchard Food Directory",
+  "name": "Linda's Apps",
   "version": 2,
   "buildCommand": "echo 'Static site - no build needed'",
   "outputDirectory": ".",
   "routes": [
+    {
+      "src": "/spending-tracker",
+      "dest": "/spending-tracker.html"
+    },
+    {
+      "src": "/spending",
+      "dest": "/spending-tracker.html"
+    },
     {
       "src": "/(.*)",
       "dest": "/index.html"
