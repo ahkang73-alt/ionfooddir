@@ -122,19 +122,19 @@ function drawShooters() {
 }
 
 /* ─── PLANET DATA ─── */
-const TILT = 0.32;
+const TILT = 0.65;
 const TILT_ROT = -0.10;
 const YEAR_SEC = 60;
 
 const P = [
-  { name:'Mercury', orb:0.14, per:0.24,  r:2.5,  hi:'#c8b8a8', mid:'#a89888', lo:'#887060' },
-  { name:'Venus',   orb:0.22, per:0.62,  r:3.8,  hi:'#f0e098', mid:'#d8c078', lo:'#b0a050' },
-  { name:'Earth',   orb:0.30, per:1.00,  r:4.2,  hi:'#68b0e8', mid:'#4488cc', lo:'#2868a0', moon:1 },
-  { name:'Mars',    orb:0.38, per:1.88,  r:3.2,  hi:'#e86848', mid:'#c04828', lo:'#982818' },
-  { name:'Jupiter', orb:0.54, per:11.86, r:11,   hi:'#e0c080', mid:'#c8a060', lo:'#a08040', bands:1 },
-  { name:'Saturn',  orb:0.68, per:29.46, r:9,    hi:'#f0e0a8', mid:'#d8c888', lo:'#b0a860', rings:1 },
-  { name:'Uranus',  orb:0.83, per:84.01, r:6,    hi:'#88e0d8', mid:'#60b8b0', lo:'#409890' },
-  { name:'Neptune', orb:0.97, per:164.8, r:5.5,  hi:'#5878e0', mid:'#3858c0', lo:'#2040a0' }
+  { name:'Mercury', orb:0.14, per:0.24,  r:4,    hi:'#c8b8a8', mid:'#a89888', lo:'#887060' },
+  { name:'Venus',   orb:0.22, per:0.62,  r:5.5,  hi:'#f0e098', mid:'#d8c078', lo:'#b0a050' },
+  { name:'Earth',   orb:0.30, per:1.00,  r:6,    hi:'#68b0e8', mid:'#4488cc', lo:'#2868a0', moon:1 },
+  { name:'Mars',    orb:0.38, per:1.88,  r:5,    hi:'#e86848', mid:'#c04828', lo:'#982818' },
+  { name:'Jupiter', orb:0.54, per:11.86, r:16,   hi:'#e0c080', mid:'#c8a060', lo:'#a08040', bands:1 },
+  { name:'Saturn',  orb:0.68, per:29.46, r:13,   hi:'#f0e0a8', mid:'#d8c888', lo:'#b0a860', rings:1 },
+  { name:'Uranus',  orb:0.83, per:84.01, r:9,    hi:'#88e0d8', mid:'#60b8b0', lo:'#409890' },
+  { name:'Neptune', orb:0.97, per:164.8, r:8,    hi:'#5878e0', mid:'#3858c0', lo:'#2040a0' }
 ];
 
 P.forEach((p, i) => {
@@ -171,38 +171,38 @@ function drawSun(cx, cy, t, sc) {
   const pulse = 1 + Math.sin(t * 0.0008) * 0.06;
 
   // outermost halo
-  const g0 = ctx.createRadialGradient(cx,cy,0, cx,cy, 110*sc*pulse);
+  const g0 = ctx.createRadialGradient(cx,cy,0, cx,cy, 140*sc*pulse);
   g0.addColorStop(0, 'rgba(255,140,20,0.06)');
   g0.addColorStop(0.4, 'rgba(255,90,10,0.02)');
   g0.addColorStop(1, 'rgba(255,60,0,0)');
   ctx.fillStyle = g0;
-  ctx.beginPath(); ctx.arc(cx,cy,110*sc*pulse,0,6.28); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy,140*sc*pulse,0,6.28); ctx.fill();
 
   // corona
-  const g1 = ctx.createRadialGradient(cx,cy,0, cx,cy, 48*sc*pulse);
+  const g1 = ctx.createRadialGradient(cx,cy,0, cx,cy, 60*sc*pulse);
   g1.addColorStop(0, 'rgba(255,190,80,0.35)');
   g1.addColorStop(0.35, 'rgba(255,130,40,0.10)');
   g1.addColorStop(1, 'rgba(255,80,10,0)');
   ctx.fillStyle = g1;
-  ctx.beginPath(); ctx.arc(cx,cy,48*sc*pulse,0,6.28); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy,60*sc*pulse,0,6.28); ctx.fill();
 
   // inner glow
-  const g2 = ctx.createRadialGradient(cx,cy,0, cx,cy, 22*sc);
+  const g2 = ctx.createRadialGradient(cx,cy,0, cx,cy, 30*sc);
   g2.addColorStop(0, 'rgba(255,210,120,0.6)');
   g2.addColorStop(0.5, 'rgba(255,160,60,0.2)');
   g2.addColorStop(1, 'rgba(255,120,30,0)');
   ctx.fillStyle = g2;
-  ctx.beginPath(); ctx.arc(cx,cy,22*sc,0,6.28); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy,30*sc,0,6.28); ctx.fill();
 
   // core
-  const g3 = ctx.createRadialGradient(cx-2*sc, cy-2*sc, 0, cx, cy, 13*sc);
+  const g3 = ctx.createRadialGradient(cx-3*sc, cy-3*sc, 0, cx, cy, 18*sc);
   g3.addColorStop(0, '#fffff4');
   g3.addColorStop(0.15, '#ffee98');
   g3.addColorStop(0.4, '#ffba48');
   g3.addColorStop(0.7, '#f08020');
   g3.addColorStop(1, '#c85810');
   ctx.fillStyle = g3;
-  ctx.beginPath(); ctx.arc(cx,cy,13*sc,0,6.28); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy,18*sc,0,6.28); ctx.fill();
 }
 
 function drawPlanetBody(x, y, p, sc, dim) {
@@ -309,7 +309,7 @@ function drawPlanetBody(x, y, p, sc, dim) {
   ctx.globalAlpha = 1;
 
   // label
-  const fs = Math.max(8.5, 10 * sc);
+  const fs = Math.max(10, 12 * sc);
   ctx.font = '300 ' + fs + 'px DM Mono, monospace';
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(140,150,180,' + (dim * 0.45).toFixed(2) + ')';
@@ -320,10 +320,10 @@ function drawMoon(earthX, earthY, sc, dim) {
   const moonPer = 27.3 / 365.25;
   const moonW = 6.28 / (moonPer * YEAR_SEC);
   const moonAngle = moonW * simT + 1.2;
-  const moonR = Math.max(6, 11 * sc);
+  const moonR = Math.max(10, 16 * sc);
   const mx = earthX + moonR * Math.cos(moonAngle);
   const my = earthY + moonR * Math.sin(moonAngle) * 0.5;
-  const mr = Math.max(1, 1.5 * sc);
+  const mr = Math.max(1.8, 2.5 * sc);
 
   ctx.globalAlpha = dim * 0.7;
   const mg = ctx.createRadialGradient(mx-mr*0.2, my-mr*0.2, 0, mx, my, mr);
@@ -357,9 +357,12 @@ function frame(ts) {
   drawShooters();
 
   const cx = W * 0.5;
-  const cy = H * 0.48;
-  const maxR = Math.min(W * 0.46, H * 0.40);
-  const sc = Math.max(0.55, Math.min(1.5, maxR / 350));
+  const cy = H * 0.46;
+  const portrait = H > W;
+  const maxR = portrait
+    ? H * 0.40
+    : Math.min(W * 0.46, H * 0.42);
+  const sc = Math.max(0.85, Math.min(2.5, maxR / 220));
 
   drawOrbitPaths(cx, cy, maxR);
 
