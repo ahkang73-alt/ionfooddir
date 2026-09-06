@@ -1,0 +1,401 @@
+<title>Solar System</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Mono:wght@300;400&display=swap">
+<style>
+  body {
+    background: #050810;
+    color: #c0c8e0;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    font-family: 'DM Mono', monospace;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+  .clock {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+    text-align: center;
+    padding-top: min(7vh, 44px);
+    pointer-events: none;
+  }
+  .time {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.6rem, 8.5vw, 5.2rem);
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #d0d4e0;
+    text-shadow: 0 0 50px rgba(200,180,140,0.12), 0 2px 16px rgba(0,0,0,0.5);
+    font-variant-numeric: tabular-nums;
+  }
+  .date {
+    font-family: 'DM Mono', monospace;
+    font-size: clamp(0.6rem, 1.6vw, 0.8rem);
+    font-weight: 300;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(150,160,190,0.3);
+    margin-top: 0.25rem;
+  }
+</style>
+
+<canvas id="c"></canvas>
+<div class="clock">
+  <div class="time" id="t">00:00</div>
+  <div class="date" id="d"></div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resize();
+window.addEventListener('resize', resize);
+
+/* ─── CLOCK ─── */
+function updateClock() {
+  const n = new Date();
+  document.getElementById('t').textContent =
+    n.getHours().toString().padStart(2,'0') + ':' + n.getMinutes().toString().padStart(2,'0');
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('d').textContent =
+    days[n.getDay()] + '  ' + n.getDate() + ' ' + months[n.getMonth()] + '  ' + n.getFullYear();
+}
+updateClock();
+setInterval(updateClock, 5000);
+
+/* ─── STARS ─── */
+const stars = Array.from({length: 250}, () => ({
+  x: Math.random(), y: Math.random(),
+  r: Math.random() * 1.2 + 0.2,
+  phase: Math.random() * 6.28,
+  speed: Math.random() * 0.008 + 0.002
+}));
+
+function drawStars(t) {
+  for (const s of stars) {
+    const a = 0.2 + 0.6 * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+    ctx.beginPath();
+    ctx.arc(s.x * W, s.y * H, s.r, 0, 6.28);
+    ctx.fillStyle = 'rgba(190,195,220,' + a.toFixed(2) + ')';
+    ctx.fill();
+  }
+}
+
+/* ─── SHOOTING STARS ─── */
+const shooters = [];
+function drawShooters() {
+  if (Math.random() < 0.002) shooters.push({
+    x: Math.random()*W*0.7 + W*0.15, y: Math.random()*H*0.25,
+    vx: (2.5+Math.random()*3)*(Math.random()>0.5?1:-1), vy: 1+Math.random()*1.5,
+    life: 1, dec: 0.012+Math.random()*0.008, len: 25+Math.random()*35
+  });
+  for (let i = shooters.length-1; i >= 0; i--) {
+    const s = shooters[i];
+    s.x += s.vx; s.y += s.vy; s.life -= s.dec;
+    if (s.life <= 0) { shooters.splice(i,1); continue; }
+    const m = Math.sqrt(s.vx*s.vx+s.vy*s.vy);
+    const g = ctx.createLinearGradient(s.x,s.y,s.x-s.vx/m*s.len,s.y-s.vy/m*s.len);
+    g.addColorStop(0,'rgba(210,220,250,'+(.8*s.life).toFixed(2)+')');
+    g.addColorStop(1,'rgba(210,220,250,0)');
+    ctx.beginPath(); ctx.moveTo(s.x,s.y);
+    ctx.lineTo(s.x-s.vx/m*s.len, s.y-s.vy/m*s.len);
+    ctx.strokeStyle=g; ctx.lineWidth=1.2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(s.x,s.y,1.5,0,6.28);
+    ctx.fillStyle='rgba(220,230,255,'+(.7*s.life).toFixed(2)+')'; ctx.fill();
+  }
+}
+
+/* ─── PLANET DATA ─── */
+const TILT = 0.32;
+const TILT_ROT = -0.10;
+const YEAR_SEC = 60;
+
+const P = [
+  { name:'Mercury', orb:0.14, per:0.24,  r:2.5,  hi:'#c8b8a8', mid:'#a89888', lo:'#887060' },
+  { name:'Venus',   orb:0.22, per:0.62,  r:3.8,  hi:'#f0e098', mid:'#d8c078', lo:'#b0a050' },
+  { name:'Earth',   orb:0.30, per:1.00,  r:4.2,  hi:'#68b0e8', mid:'#4488cc', lo:'#2868a0', moon:1 },
+  { name:'Mars',    orb:0.38, per:1.88,  r:3.2,  hi:'#e86848', mid:'#c04828', lo:'#982818' },
+  { name:'Jupiter', orb:0.54, per:11.86, r:11,   hi:'#e0c080', mid:'#c8a060', lo:'#a08040', bands:1 },
+  { name:'Saturn',  orb:0.68, per:29.46, r:9,    hi:'#f0e0a8', mid:'#d8c888', lo:'#b0a860', rings:1 },
+  { name:'Uranus',  orb:0.83, per:84.01, r:6,    hi:'#88e0d8', mid:'#60b8b0', lo:'#409890' },
+  { name:'Neptune', orb:0.97, per:164.8, r:5.5,  hi:'#5878e0', mid:'#3858c0', lo:'#2040a0' }
+];
+
+P.forEach((p, i) => {
+  p.startA = (i / P.length) * 6.28 + (Math.random() - 0.5) * 1.4;
+});
+
+let simT = 0;
+
+/* ─── DRAW HELPERS ─── */
+function orbitXY(angle, orbitR, cx, cy) {
+  const px = orbitR * Math.cos(angle);
+  const py = orbitR * Math.sin(angle);
+  const rx = px * Math.cos(TILT_ROT) - py * Math.sin(TILT_ROT);
+  const ry = (px * Math.sin(TILT_ROT) + py * Math.cos(TILT_ROT)) * TILT;
+  return { x: cx + rx, y: cy + ry, depth: ry };
+}
+
+function drawOrbitPaths(cx, cy, maxR) {
+  ctx.lineWidth = 0.7;
+  for (const p of P) {
+    const r = p.orb * maxR;
+    ctx.beginPath();
+    for (let a = 0; a <= 6.3; a += 0.05) {
+      const pt = orbitXY(a, r, cx, cy);
+      a === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(80,100,160,0.10)';
+    ctx.stroke();
+  }
+}
+
+function drawSun(cx, cy, t, sc) {
+  const pulse = 1 + Math.sin(t * 0.0008) * 0.06;
+
+  // outermost halo
+  const g0 = ctx.createRadialGradient(cx,cy,0, cx,cy, 110*sc*pulse);
+  g0.addColorStop(0, 'rgba(255,140,20,0.06)');
+  g0.addColorStop(0.4, 'rgba(255,90,10,0.02)');
+  g0.addColorStop(1, 'rgba(255,60,0,0)');
+  ctx.fillStyle = g0;
+  ctx.beginPath(); ctx.arc(cx,cy,110*sc*pulse,0,6.28); ctx.fill();
+
+  // corona
+  const g1 = ctx.createRadialGradient(cx,cy,0, cx,cy, 48*sc*pulse);
+  g1.addColorStop(0, 'rgba(255,190,80,0.35)');
+  g1.addColorStop(0.35, 'rgba(255,130,40,0.10)');
+  g1.addColorStop(1, 'rgba(255,80,10,0)');
+  ctx.fillStyle = g1;
+  ctx.beginPath(); ctx.arc(cx,cy,48*sc*pulse,0,6.28); ctx.fill();
+
+  // inner glow
+  const g2 = ctx.createRadialGradient(cx,cy,0, cx,cy, 22*sc);
+  g2.addColorStop(0, 'rgba(255,210,120,0.6)');
+  g2.addColorStop(0.5, 'rgba(255,160,60,0.2)');
+  g2.addColorStop(1, 'rgba(255,120,30,0)');
+  ctx.fillStyle = g2;
+  ctx.beginPath(); ctx.arc(cx,cy,22*sc,0,6.28); ctx.fill();
+
+  // core
+  const g3 = ctx.createRadialGradient(cx-2*sc, cy-2*sc, 0, cx, cy, 13*sc);
+  g3.addColorStop(0, '#fffff4');
+  g3.addColorStop(0.15, '#ffee98');
+  g3.addColorStop(0.4, '#ffba48');
+  g3.addColorStop(0.7, '#f08020');
+  g3.addColorStop(1, '#c85810');
+  ctx.fillStyle = g3;
+  ctx.beginPath(); ctx.arc(cx,cy,13*sc,0,6.28); ctx.fill();
+}
+
+function drawPlanetBody(x, y, p, sc, dim) {
+  const pr = p.r * sc;
+
+  // glow halo
+  ctx.globalAlpha = dim * 0.25;
+  const gl = ctx.createRadialGradient(x,y,0, x,y, pr*3.5);
+  gl.addColorStop(0, p.mid + '30');
+  gl.addColorStop(1, p.mid + '00');
+  ctx.fillStyle = gl;
+  ctx.beginPath(); ctx.arc(x,y,pr*3.5,0,6.28); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Saturn rings behind planet
+  if (p.rings) {
+    ctx.globalAlpha = dim * 0.35;
+    ctx.beginPath();
+    ctx.ellipse(x, y, pr*2.4, pr*2.4*0.28, 0.22, Math.PI, 2*Math.PI);
+    ctx.strokeStyle = '#d8d0b0';
+    ctx.lineWidth = pr * 0.55;
+    ctx.stroke();
+    // inner ring gap
+    ctx.beginPath();
+    ctx.ellipse(x, y, pr*1.7, pr*1.7*0.28, 0.22, Math.PI, 2*Math.PI);
+    ctx.strokeStyle = '#c8c0a0';
+    ctx.lineWidth = pr * 0.25;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // planet sphere
+  ctx.globalAlpha = dim;
+  const gr = ctx.createRadialGradient(x - pr*0.3, y - pr*0.35, pr*0.1, x, y, pr);
+  gr.addColorStop(0, p.hi);
+  gr.addColorStop(0.55, p.mid);
+  gr.addColorStop(1, p.lo);
+  ctx.fillStyle = gr;
+  ctx.beginPath(); ctx.arc(x, y, pr, 0, 6.28); ctx.fill();
+
+  // Jupiter bands
+  if (p.bands) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, pr, 0, 6.28); ctx.clip();
+    ctx.globalAlpha = dim * 0.25;
+    for (let b = -3; b <= 3; b++) {
+      if (b === 0) continue;
+      const by = y + b * pr * 0.22;
+      ctx.beginPath();
+      ctx.moveTo(x - pr, by);
+      ctx.lineTo(x + pr, by);
+      ctx.strokeStyle = b % 2 === 0 ? '#a08848' : '#c8a868';
+      ctx.lineWidth = pr * 0.18;
+      ctx.stroke();
+    }
+    // Great Red Spot
+    ctx.beginPath();
+    ctx.ellipse(x + pr*0.25, y + pr*0.18, pr*0.2, pr*0.13, 0.1, 0, 6.28);
+    ctx.fillStyle = '#c87848';
+    ctx.globalAlpha = dim * 0.3;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Earth details
+  if (p.moon) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, pr, 0, 6.28); ctx.clip();
+    ctx.globalAlpha = dim * 0.2;
+    // landmass hints
+    ctx.beginPath();
+    ctx.ellipse(x - pr*0.2, y - pr*0.15, pr*0.35, pr*0.25, 0.3, 0, 6.28);
+    ctx.fillStyle = '#48a048';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(x + pr*0.3, y + pr*0.1, pr*0.2, pr*0.3, -0.2, 0, 6.28);
+    ctx.fillStyle = '#48a048';
+    ctx.fill();
+    // ice cap
+    ctx.beginPath();
+    ctx.ellipse(x, y - pr*0.75, pr*0.5, pr*0.18, 0, 0, 6.28);
+    ctx.fillStyle = '#d0e8f0';
+    ctx.globalAlpha = dim * 0.3;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Saturn rings in front of planet
+  if (p.rings) {
+    ctx.globalAlpha = dim * 0.4;
+    ctx.beginPath();
+    ctx.ellipse(x, y, pr*2.4, pr*2.4*0.28, 0.22, 0, Math.PI);
+    ctx.strokeStyle = '#d8d0b8';
+    ctx.lineWidth = pr * 0.55;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(x, y, pr*1.7, pr*1.7*0.28, 0.22, 0, Math.PI);
+    ctx.strokeStyle = '#c8c0a8';
+    ctx.lineWidth = pr * 0.25;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.globalAlpha = 1;
+
+  // label
+  const fs = Math.max(8.5, 10 * sc);
+  ctx.font = '300 ' + fs + 'px DM Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(140,150,180,' + (dim * 0.45).toFixed(2) + ')';
+  ctx.fillText(p.name, x, y + pr + fs + 3);
+}
+
+function drawMoon(earthX, earthY, sc, dim) {
+  const moonPer = 27.3 / 365.25;
+  const moonW = 6.28 / (moonPer * YEAR_SEC);
+  const moonAngle = moonW * simT + 1.2;
+  const moonR = Math.max(6, 11 * sc);
+  const mx = earthX + moonR * Math.cos(moonAngle);
+  const my = earthY + moonR * Math.sin(moonAngle) * 0.5;
+  const mr = Math.max(1, 1.5 * sc);
+
+  ctx.globalAlpha = dim * 0.7;
+  const mg = ctx.createRadialGradient(mx-mr*0.2, my-mr*0.2, 0, mx, my, mr);
+  mg.addColorStop(0, '#e0e0e8');
+  mg.addColorStop(1, '#909098');
+  ctx.fillStyle = mg;
+  ctx.beginPath(); ctx.arc(mx, my, mr, 0, 6.28); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function drawVignette() {
+  const g = ctx.createRadialGradient(W/2,H/2, Math.min(W,H)*0.2, W/2,H/2, Math.max(W,H)*0.82);
+  g.addColorStop(0, 'rgba(5,8,16,0)');
+  g.addColorStop(1, 'rgba(5,8,16,0.6)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,H);
+}
+
+/* ─── MAIN LOOP ─── */
+let last = 0;
+function frame(ts) {
+  const dt = Math.min((ts - last) / 1000, 0.1);
+  last = ts;
+  simT += dt;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#050810';
+  ctx.fillRect(0, 0, W, H);
+
+  drawStars(ts);
+  drawShooters();
+
+  const cx = W * 0.5;
+  const cy = H * 0.48;
+  const maxR = Math.min(W * 0.46, H * 0.40);
+  const sc = Math.max(0.55, Math.min(1.5, maxR / 350));
+
+  drawOrbitPaths(cx, cy, maxR);
+
+  // compute planet positions
+  const positions = P.map(p => {
+    const w = 6.28 / (p.per * YEAR_SEC);
+    const angle = p.startA + w * simT;
+    const oR = p.orb * maxR;
+    const pos = orbitXY(angle, oR, cx, cy);
+    return { p, x: pos.x, y: pos.y, depth: pos.depth, angle };
+  });
+
+  // z-sort: behind Sun first, then Sun, then in front
+  const behind = positions.filter(o => o.depth < -1);
+  const inFront = positions.filter(o => o.depth >= -1);
+
+  // draw behind planets
+  behind.sort((a,b) => a.depth - b.depth);
+  for (const o of behind) {
+    const dim = 0.55;
+    if (o.p.moon) drawMoon(o.x, o.y, sc, dim);
+    drawPlanetBody(o.x, o.y, o.p, sc, dim);
+  }
+
+  drawSun(cx, cy, ts, sc);
+
+  // draw in-front planets
+  inFront.sort((a,b) => a.depth - b.depth);
+  for (const o of inFront) {
+    const dim = 1.0;
+    drawPlanetBody(o.x, o.y, o.p, sc, dim);
+    if (o.p.moon) drawMoon(o.x, o.y, sc, dim);
+  }
+
+  drawVignette();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
