@@ -110,6 +110,7 @@ const SFX: Array<{at: number; src: string; volume: number}> = [
 	{at: 1000, src: 'boing.wav', volume: 0.35},
 	{at: 1113, src: 'chime.wav', volume: 0.5},
 	{at: 1172, src: 'whoosh.wav', volume: 0.5},
+	{at: 1196, src: 'ding.wav', volume: 0.45},
 	{at: 1260, src: 'tada.wav', volume: 0.55},
 ];
 
@@ -131,7 +132,7 @@ const Soundtrack: React.FC = () => (
 const LOGO_KEYS = [110, 135, 168, 198, 1110, 1142];
 const PersistentLogo: React.FC = () => {
 	const f = useCurrentFrame();
-	const y = interpolate(f, LOGO_KEYS, [800, 760, 760, 150, 150, 500], {...clamp, easing: ease});
+	const y = interpolate(f, LOGO_KEYS, [800, 760, 760, 150, 150, 465], {...clamp, easing: ease});
 	const w = interpolate(f, LOGO_KEYS, [560, 600, 600, 270, 270, 500], {...clamp, easing: ease});
 	const opacity = interpolate(f, [110, 135], [0, 1], clamp);
 	const halo = interpolate(f, LOGO_KEYS, [0, 1, 1, 0, 0, 1], clamp);
@@ -284,6 +285,7 @@ const DateScene: React.FC = () => {
 	const card = spring({frame: f - 370, fps, config: {damping: 13, stiffness: 90}});
 	const pill = spring({frame: f - 416, fps, config: {damping: 12, stiffness: 110}});
 	const ghost = spring({frame: f - 462, fps, config: {damping: 7, stiffness: 120}});
+	const rsvp = interpolate(f, [440, 456], [0, 1], {...clamp, easing: ease});
 	return (
 		<AbsoluteFill style={{opacity: exit}}>
 			<div style={{...centered, top: 400, opacity: head}}>
@@ -355,6 +357,13 @@ const DateScene: React.FC = () => {
 			>
 				<ClockIcon size={96} frame={f} />
 				<span style={{...cuteText(74), textShadow: 'none'}}>{EVENT.time}</span>
+			</div>
+			<div style={{...centered, top: 1372, opacity: rsvp, transform: `translateY(${(1 - rsvp) * 20}px)`}}>
+				<span style={{...cuteText(50, C.orangeLight)}}>
+					<Sparkle size={34} style={{verticalAlign: 'middle', marginRight: 14}} />
+					RSVP required
+					<Sparkle size={34} style={{verticalAlign: 'middle', marginLeft: 14}} />
+				</span>
 			</div>
 		</AbsoluteFill>
 	);
@@ -496,23 +505,43 @@ const OutroScene: React.FC = () => {
 	if (f < 1110) return null;
 	const a = (start: number) => interpolate(f, [start, start + 18], [0, 1], {...clamp, easing: ease});
 	const see = spring({frame: f - 1260, fps, config: {damping: 8, stiffness: 130}});
+	const rsvp = spring({frame: f - 1192, fps, config: {damping: 11, stiffness: 120}});
 	return (
 		<AbsoluteFill>
-			<div style={{...centered, top: 790, opacity: a(1135), transform: `translateY(${(1 - a(1135)) * 30}px)`}}>
+			<div style={{...centered, top: 745, opacity: a(1135), transform: `translateY(${(1 - a(1135)) * 30}px)`}}>
 				<div style={spookyText(118, C.orange)}>Halloween Party</div>
 			</div>
-			<div style={{...centered, top: 940, opacity: a(1152)}}>
+			<div style={{...centered, top: 890, opacity: a(1152)}}>
 				<div style={cuteText(60)}>Friday, 30 October 2026</div>
 				<div style={{...cuteText(60, C.orangeLight), marginTop: 8}}>{EVENT.time}</div>
 			</div>
-			<div style={{...centered, top: 1120, opacity: a(1170)}}>
+			<div style={{...centered, top: 1062, opacity: a(1170)}}>
 				<div style={{...cuteText(38, C.cream, 400)}}>
 					{EVENT.addressLine1}
 					<br />
 					{EVENT.addressLine2}
 				</div>
 			</div>
-			<div style={{...centered, top: 1265, transform: `scale(${see}) rotate(${Math.sin(f / 12) * 2}deg)`}}>
+			<div
+				style={{
+					position: 'absolute',
+					left: 120,
+					top: 1175,
+					width: 840,
+					padding: '20px 0 22px',
+					borderRadius: 44,
+					background: C.orange,
+					border: `5px solid ${C.white}`,
+					textAlign: 'center',
+					boxShadow: '0 0 50px rgba(255,122,26,0.5)',
+					transform: `scale(${rsvp})`,
+					zIndex: 2,
+				}}
+			>
+				<div style={{fontFamily: FONT.cute, fontWeight: 600, fontSize: 58, color: C.black, lineHeight: 1.1}}>{EVENT.rsvpTitle}</div>
+				<div style={{fontFamily: FONT.cute, fontWeight: 400, fontSize: 36, color: C.black, marginTop: 6}}>{EVENT.rsvpLine}</div>
+			</div>
+			<div style={{...centered, top: 1355, transform: `scale(${see}) rotate(${Math.sin(f / 12) * 2}deg)`}}>
 				<div style={spookyText(150, C.white)}>See you there!</div>
 			</div>
 			{see > 0.05 &&
@@ -528,7 +557,7 @@ const OutroScene: React.FC = () => {
 							style={{
 								position: 'absolute',
 								left: 540 + Math.cos(ang) * d * 1.4 - 25,
-								top: 1340 + Math.sin(ang) * d * 0.6 - 25,
+								top: 1430 + Math.sin(ang) * d * 0.4 - 25,
 								opacity: o,
 								transform: `rotate(${f * 4}deg)`,
 							}}
