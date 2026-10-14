@@ -178,10 +178,10 @@ def woodblock():
 
 
 # ----------------------------------------------------------------- music score
-BPM = 120
+BPM = 135
 BEAT = 60 / BPM
 BAR = BEAT * 4
-TOTAL = 45.0
+TOTAL = 40.0
 
 
 def swing(beat):
@@ -279,7 +279,7 @@ def build_music():
             add(music_box(mtof(m), 0.9, 0.6), bar_t(b, 0.5 + k), 0.16, 0.5)
     add(theremin(th_notes, 8 * BAR + 1), 10 * BAR, 0.30, -0.1)
 
-    # --- outro (bars 18-20) then the final "ta-da" at bar 21 (42 s)
+    # --- outro (bars 18-20) then the final "ta-da" at bar 21 (~37.3 s)
     for i, (chord, mel) in enumerate([("Dm", 0), ("Bb", 2), ("A7", 3)]):
         b = 18 + i
         groove(b, chord, 2)

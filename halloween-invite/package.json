@@ -7,7 +7,7 @@
     "audio": "python3 scripts/make_audio.py",
     "studio": "remotion studio",
     "render": "remotion render HalloweenInvite out/celevenus-halloween-invite.mp4",
-    "still": "remotion still HalloweenInvite out/poster.png --frame=1340"
+    "still": "remotion still HalloweenInvite out/poster.png --frame=1190"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "5.3.0",

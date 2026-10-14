@@ -1,7 +1,8 @@
 import React from 'react';
-import {AbsoluteFill, interpolate, random, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, interpolate, random, spring, useVideoConfig} from 'remotion';
 import {Bat, Moon, Pumpkin, Spider} from './elements/Characters';
 import {C} from './theme';
+import {useSceneFrame} from './time';
 
 const STARS = Array.from({length: 26}, (_, i) => ({
 	x: random(`sx${i}`) * 1080,
@@ -14,7 +15,7 @@ const STARS = Array.from({length: 26}, (_, i) => ({
 export const MOON = {left: 720, top: 70, size: 320};
 
 export const Background: React.FC = () => {
-	const frame = useCurrentFrame();
+	const frame = useSceneFrame();
 	const {fps} = useVideoConfig();
 
 	const moonRise = interpolate(frame, [0, 70], [260, 0], {

@@ -15,10 +15,10 @@ import {
 	Sequence,
 	spring,
 	staticFile,
-	useCurrentFrame,
 	useVideoConfig,
 } from 'remotion';
 import {Background} from './Background';
+import {SPEED, useSceneFrame} from './time';
 import {
 	Bat,
 	Cauldron,
@@ -111,7 +111,7 @@ const SFX: Array<{at: number; src: string; volume: number}> = [
 	{at: 1000, src: 'boing.wav', volume: 0.35},
 	{at: 1113, src: 'chime.wav', volume: 0.5},
 	{at: 1172, src: 'whoosh.wav', volume: 0.5},
-	{at: 1182, src: 'ding.wav', volume: 0.45},
+	{at: 1162, src: 'ding.wav', volume: 0.45},
 	{at: 1260, src: 'tada.wav', volume: 0.55},
 ];
 
@@ -125,8 +125,8 @@ const Soundtrack: React.FC = () => (
 			}
 		/>
 		{SFX.map((s) => (
-			<Sequence key={`${s.src}-${s.at}`} from={s.at} durationInFrames={150} layout="none">
-				<Html5Audio src={staticFile(`audio/${s.src}`)} volume={s.volume * (1 - 0.4 * voiceActivity(s.at, FPS))} />
+			<Sequence key={`${s.src}-${s.at}`} from={Math.round(s.at / SPEED)} durationInFrames={150} layout="none">
+				<Html5Audio src={staticFile(`audio/${s.src}`)} volume={s.volume * (1 - 0.4 * voiceActivity(s.at / SPEED, FPS))} />
 			</Sequence>
 		))}
 		{VOICE_LINES.map((l) => {
@@ -147,7 +147,7 @@ const Soundtrack: React.FC = () => (
 // ------------------------------------------------------------------ logo (persistent)
 const LOGO_KEYS = [110, 135, 168, 198, 1110, 1142];
 const PersistentLogo: React.FC = () => {
-	const f = useCurrentFrame();
+	const f = useSceneFrame();
 	const y = interpolate(f, LOGO_KEYS, [800, 760, 760, 150, 150, 465], {...clamp, easing: ease});
 	const w = interpolate(f, LOGO_KEYS, [560, 600, 600, 270, 270, 500], {...clamp, easing: ease});
 	const opacity = interpolate(f, [110, 135], [0, 1], clamp);
@@ -201,7 +201,7 @@ const FlyingWitch: React.FC<{start: number; end: number; y0: number; y1: number;
 	y1,
 	size,
 }) => {
-	const f = useCurrentFrame();
+	const f = useSceneFrame();
 	if (f < start - 2 || f > end + 30) return null;
 	const pos = (fr: number) => {
 		const p = (fr - start) / (end - start);
@@ -237,7 +237,7 @@ const FlyingWitch: React.FC<{start: number; end: number; y0: number; y1: number;
 
 // ------------------------------------------------------------------ scenes
 const IntroLine: React.FC = () => {
-	const f = useCurrentFrame();
+	const f = useSceneFrame();
 	const o = inOut(f, 138, 172, 12);
 	return (
 		<div style={{...centered, top: 1060, opacity: o, transform: `translateY(${(1 - o) * 20}px)`}}>
@@ -247,7 +247,7 @@ const IntroLine: React.FC = () => {
 };
 
 const TitleScene: React.FC = () => {
-	const f = useCurrentFrame();
+	const f = useSceneFrame();
 	const {fps} = useVideoConfig();
 	const exit = interpolate(f, [335, 360], [1, 0], {...clamp, easing: ease});
 	const invited = interpolate(f, [186, 202], [0, 1], {...clamp, easing: ease});
@@ -293,7 +293,7 @@ const TitleScene: React.FC = () => {
 };
 
 const DateScene: React.FC = () => {
-	const f = useCurrentFrame();
+	const f = useSceneFrame();
 	const {fps} = useVideoConfig();
 	if (f < 360 || f > 557) return null;
 	const exit = interpolate(f, [528, 555], [1, 0], {...clamp, easing: ease});
@@ -392,7 +392,7 @@ const ITEMS = [
 ];
 
 const TreatsScene: React.FC = () => {
-	const f = useCurrentFrame();
+	const f = useSceneFrame();
 	const {fps} = useVideoConfig();
 	if (f < 555 || f > 932) return null;
 	const exit = interpolate(f, [902, 930], [1, 0], {...clamp, easing: ease});
@@ -458,7 +458,7 @@ const TreatsScene: React.FC = () => {
 };
 
 const EnjoyScene: React.FC = () => {
-	const f = useCurrentFrame();
+	const f = useSceneFrame();
 	const {fps} = useVideoConfig();
 	if (f < 930 || f > 1112) return null;
 	const exit = interpolate(f, [1084, 1110], [1, 0], {...clamp, easing: ease});
@@ -516,12 +516,12 @@ const EnjoyScene: React.FC = () => {
 };
 
 const OutroScene: React.FC = () => {
-	const f = useCurrentFrame();
+	const f = useSceneFrame();
 	const {fps} = useVideoConfig();
 	if (f < 1110) return null;
 	const a = (start: number) => interpolate(f, [start, start + 18], [0, 1], {...clamp, easing: ease});
 	const see = spring({frame: f - 1260, fps, config: {damping: 8, stiffness: 130}});
-	const rsvp = spring({frame: f - 1178, fps, config: {damping: 11, stiffness: 120}});
+	const rsvp = spring({frame: f - 1158, fps, config: {damping: 11, stiffness: 120}});
 	return (
 		<AbsoluteFill>
 			<div style={{...centered, top: 745, opacity: a(1135), transform: `translateY(${(1 - a(1135)) * 30}px)`}}>
@@ -531,7 +531,7 @@ const OutroScene: React.FC = () => {
 				<div style={cuteText(60)}>Friday, 30 October 2026</div>
 				<div style={{...cuteText(60, C.orangeLight), marginTop: 8}}>{EVENT.time}</div>
 			</div>
-			<div style={{...centered, top: 1062, opacity: a(1160)}}>
+			<div style={{...centered, top: 1062, opacity: a(1150)}}>
 				<div style={{...cuteText(38, C.cream, 400)}}>
 					{EVENT.addressLine1}
 					<br />
