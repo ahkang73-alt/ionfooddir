@@ -1,21 +1,21 @@
-// Dr Dylan's voiceover (ElevenLabs, "Dr dylan" voice), cut into sentences and
-// placed on the matching scenes. src* are seconds in dr-dylan-voiceover.wav,
-// `at` is where the sentence starts in the video (seconds).
+// Dr Dylan's voiceover (ElevenLabs, "Dr dylan" voice, calm multilingual v2 take),
+// cut into sentences and placed on the matching scenes. src* are seconds in
+// dr-dylan-voiceover.wav, `at` is where the sentence starts in the video (seconds).
 export const VOICE_FILE = 'audio/dr-dylan-voiceover.wav';
 
 export const VOICE_LINES = [
-	{text: 'Hi everyone, Dr Dylan here from CeleVenus!', srcStart: 0, srcEnd: 3.25, at: 1.2},
-	{text: 'You’re invited to our Halloween party!', srcStart: 3.25, srcEnd: 5.73, at: 6.1},
-	{text: 'Join us on Friday, the 30th of October, from 3 to 6 p.m.', srcStart: 5.73, srcEnd: 9.94, at: 12.3},
+	{text: 'Hi everyone, Dr Dylan here from CeleVenus.', srcStart: 0, srcEnd: 2.75, at: 1.4},
+	{text: 'You’re invited to our Halloween party.', srcStart: 2.75, srcEnd: 4.6, at: 6.3},
+	{text: 'Join us on Friday, the 30th of October, from 3 to 6 p.m.', srcStart: 4.6, srcEnd: 9.0, at: 12.4},
 	{
-		text: 'There’ll be exciting prizes to be won, some special treats for you, and yummy finger food for everyone.',
-		srcStart: 9.94,
-		srcEnd: 15.56,
-		at: 19.6,
+		text: 'There’ll be exciting prizes to be won, some special treats for you, and finger food for everyone.',
+		srcStart: 9.0,
+		srcEnd: 14.25,
+		at: 20.3,
 	},
-	{text: 'No tricks, just treats! Come in, relax, and have fun with us.', srcStart: 15.56, srcEnd: 20.06, at: 31.0},
-	{text: 'Do remember to RSVP, so we can save a spot for you.', srcStart: 20.06, srcEnd: 23.84, at: 37.9},
-	{text: 'See you there… if you dare!', srcStart: 23.84, srcEnd: 26.83, at: 41.8},
+	{text: 'No tricks, just treats. Come in, relax, and have a nice time with us.', srcStart: 14.25, srcEnd: 19.3, at: 31.0},
+	{text: 'Do remember to RSVP, so we can save a spot for you.', srcStart: 19.3, srcEnd: 22.95, at: 38.2},
+	{text: 'See you there… if you dare.', srcStart: 22.95, srcEnd: 25.26, at: 41.8},
 ];
 
 /** 1 while Dr Dylan is talking (with short ramps either side), else 0. */

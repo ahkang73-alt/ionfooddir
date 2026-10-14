@@ -19,17 +19,17 @@ A 45-second animated invitation (1080×1920, vertical, for WhatsApp/Instagram) b
 
 ## Voiceover
 
-Dr Dylan's voiceover was generated with ElevenLabs (the workspace's "Dr dylan" voice) and is stored in `public/audio/dr-dylan-voiceover.wav`. `src/voiceover.ts` cuts it into sentences and places each one on its scene; the music automatically dips while Dr Dylan is speaking.
+Dr Dylan's voiceover was generated with ElevenLabs (the workspace's "Dr dylan" voice, `eleven_multilingual_v2` for a calm, natural delivery) and is stored in `public/audio/dr-dylan-voiceover.wav`. `src/voiceover.ts` cuts it into sentences and places each one on its scene; the music automatically dips while Dr Dylan is speaking.
 
 | At | Line |
 | --- | --- |
-| 1.2 s | Hi everyone, Dr Dylan here from CeleVenus! |
-| 6.1 s | You're invited to our Halloween party! |
-| 12.3 s | Join us on Friday, the 30th of October, from 3 to 6 p.m. |
-| 19.6 s | There'll be exciting prizes to be won, some special treats for you, and yummy finger food for everyone. |
-| 31.0 s | No tricks, just treats! Come in, relax, and have fun with us. |
-| 37.9 s | Do remember to RSVP, so we can save a spot for you. |
-| 41.8 s | See you there… if you dare! |
+| 1.4 s | Hi everyone, Dr Dylan here from CeleVenus. |
+| 6.3 s | You're invited to our Halloween party. |
+| 12.4 s | Join us on Friday, the 30th of October, from 3 to 6 p.m. |
+| 20.3 s | There'll be exciting prizes to be won, some special treats for you, and finger food for everyone. |
+| 31.0 s | No tricks, just treats. Come in, relax, and have a nice time with us. |
+| 38.2 s | Do remember to RSVP, so we can save a spot for you. |
+| 41.8 s | See you there… if you dare. |
 
 The background music and all sound effects are synthesised from scratch by `scripts/make_audio.py`, so there's no licensing issue when sharing the video.
 
