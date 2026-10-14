@@ -17,6 +17,20 @@ A 45-second animated invitation (1080×1920, vertical, for WhatsApp/Instagram) b
 | 31–37 s | "No tricks, just treats!", come in, relax & enjoy | bats, boing |
 | 37–45 s | Logo, date, address, "RSVP is a must!" card, "See you there!" (lands on the music's final hit at 42 s) | chime, whoosh, ding, ta-da |
 
+## Voiceover
+
+Dr Dylan's voiceover was generated with ElevenLabs (the workspace's "Dr dylan" voice) and is stored in `public/audio/dr-dylan-voiceover.wav`. `src/voiceover.ts` cuts it into sentences and places each one on its scene; the music automatically dips while Dr Dylan is speaking.
+
+| At | Line |
+| --- | --- |
+| 1.2 s | Hi everyone, Dr Dylan here from CeleVenus! |
+| 6.1 s | You're invited to our Halloween party! |
+| 12.3 s | Join us on Friday, the 30th of October, from 3 to 6 p.m. |
+| 19.6 s | There'll be exciting prizes to be won, some special treats for you, and yummy finger food for everyone. |
+| 31.0 s | No tricks, just treats! Come in, relax, and have fun with us. |
+| 37.9 s | Do remember to RSVP, so we can save a spot for you. |
+| 41.8 s | See you there… if you dare! |
+
 The background music and all sound effects are synthesised from scratch by `scripts/make_audio.py`, so there's no licensing issue when sharing the video.
 
 ## Editing

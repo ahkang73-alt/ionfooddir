@@ -31,7 +31,8 @@ import {
 	Witch,
 } from './elements/Characters';
 import {CelevenusLogo} from './elements/Logo';
-import {C, DURATION, EVENT, FONT} from './theme';
+import {C, DURATION, EVENT, FONT, FPS} from './theme';
+import {VOICE_FILE, VOICE_LINES, voiceActivity} from './voiceover';
 
 // ------------------------------------------------------------------ helpers
 const clamp = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'} as const;
@@ -110,21 +111,36 @@ const SFX: Array<{at: number; src: string; volume: number}> = [
 	{at: 1000, src: 'boing.wav', volume: 0.35},
 	{at: 1113, src: 'chime.wav', volume: 0.5},
 	{at: 1172, src: 'whoosh.wav', volume: 0.5},
-	{at: 1196, src: 'ding.wav', volume: 0.45},
+	{at: 1182, src: 'ding.wav', volume: 0.45},
 	{at: 1260, src: 'tada.wav', volume: 0.55},
 ];
 
 const Soundtrack: React.FC = () => (
 	<>
+		{/* music dips under Dr Dylan's voice */}
 		<Html5Audio
 			src={staticFile('audio/music.wav')}
-			volume={(f) => interpolate(f, [0, 20, DURATION - 30, DURATION], [0, 0.55, 0.55, 0.4], clamp)}
+			volume={(f) =>
+				interpolate(f, [0, 20, DURATION - 30, DURATION], [0, 0.55, 0.55, 0.4], clamp) * (1 - 0.6 * voiceActivity(f, FPS))
+			}
 		/>
 		{SFX.map((s) => (
 			<Sequence key={`${s.src}-${s.at}`} from={s.at} durationInFrames={150} layout="none">
-				<Html5Audio src={staticFile(`audio/${s.src}`)} volume={s.volume} />
+				<Html5Audio src={staticFile(`audio/${s.src}`)} volume={s.volume * (1 - 0.4 * voiceActivity(s.at, FPS))} />
 			</Sequence>
 		))}
+		{VOICE_LINES.map((l) => {
+			const dur = Math.round((l.srcEnd - l.srcStart) * FPS);
+			return (
+				<Sequence key={l.at} from={Math.round(l.at * FPS)} durationInFrames={dur} layout="none">
+					<Html5Audio
+						src={staticFile(VOICE_FILE)}
+						trimBefore={Math.round(l.srcStart * FPS)}
+						volume={(f) => interpolate(f, [0, 2, dur - 3, dur], [0, 1, 1, 0], clamp)}
+					/>
+				</Sequence>
+			);
+		})}
 	</>
 );
 
@@ -505,7 +521,7 @@ const OutroScene: React.FC = () => {
 	if (f < 1110) return null;
 	const a = (start: number) => interpolate(f, [start, start + 18], [0, 1], {...clamp, easing: ease});
 	const see = spring({frame: f - 1260, fps, config: {damping: 8, stiffness: 130}});
-	const rsvp = spring({frame: f - 1192, fps, config: {damping: 11, stiffness: 120}});
+	const rsvp = spring({frame: f - 1178, fps, config: {damping: 11, stiffness: 120}});
 	return (
 		<AbsoluteFill>
 			<div style={{...centered, top: 745, opacity: a(1135), transform: `translateY(${(1 - a(1135)) * 30}px)`}}>
@@ -515,7 +531,7 @@ const OutroScene: React.FC = () => {
 				<div style={cuteText(60)}>Friday, 30 October 2026</div>
 				<div style={{...cuteText(60, C.orangeLight), marginTop: 8}}>{EVENT.time}</div>
 			</div>
-			<div style={{...centered, top: 1062, opacity: a(1170)}}>
+			<div style={{...centered, top: 1062, opacity: a(1160)}}>
 				<div style={{...cuteText(38, C.cream, 400)}}>
 					{EVENT.addressLine1}
 					<br />
