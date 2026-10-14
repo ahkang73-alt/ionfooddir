@@ -121,12 +121,12 @@ const Soundtrack: React.FC = () => (
 		<Html5Audio
 			src={staticFile('audio/music.wav')}
 			volume={(f) =>
-				interpolate(f, [0, 20, DURATION - 30, DURATION], [0, 0.55, 0.55, 0.4], clamp) * (1 - 0.6 * voiceActivity(f, FPS))
+				interpolate(f, [0, 20, DURATION - 30, DURATION], [0, 0.35, 0.35, 0.3], clamp) * (1 - 0.72 * voiceActivity(f, FPS))
 			}
 		/>
 		{SFX.map((s) => (
 			<Sequence key={`${s.src}-${s.at}`} from={Math.round(s.at / SPEED)} durationInFrames={150} layout="none">
-				<Html5Audio src={staticFile(`audio/${s.src}`)} volume={s.volume * (1 - 0.4 * voiceActivity(s.at / SPEED, FPS))} />
+				<Html5Audio src={staticFile(`audio/${s.src}`)} volume={s.volume * (1 - 0.65 * voiceActivity(s.at / SPEED, FPS))} />
 			</Sequence>
 		))}
 		{VOICE_LINES.map((l) => {
