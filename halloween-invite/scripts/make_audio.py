@@ -181,7 +181,7 @@ def woodblock():
 BPM = 120
 BEAT = 60 / BPM
 BAR = BEAT * 4
-TOTAL = 60.0
+TOTAL = 45.0
 
 
 def swing(beat):
@@ -258,35 +258,34 @@ def build_music():
             add(snap(), bar_t(bar, 3), 0.28, -0.3)
             add(woodblock(), bar_t(bar, 3.5), 0.10, 0.5)
 
-    # --- section A (bars 2-9), A' (bars 10-17)
-    for sec_start, perc, double in ((2, 1, False), (10, 2, True)):
-        for i in range(8):
-            b = sec_start + i
-            groove(b, CHORDS_A[i], perc)
-            for beat, dur, m in MELODY_A[i]:
-                add(music_box(mtof(m), 1.4), bar_t(b, beat), 0.42, 0.1)
-                if double:
-                    add(pluck(mtof(m - 12), 0.5, 0.7, 0.8), bar_t(b, beat), 0.22, 0.35)
+    # --- section A (bars 2-9): light percussion first, full groove from bar 6
+    for i in range(8):
+        b = 2 + i
+        groove(b, CHORDS_A[i], 1 if i < 4 else 2)
+        for beat, dur, m in MELODY_A[i]:
+            add(music_box(mtof(m), 1.4), bar_t(b, beat), 0.42, 0.1)
+            if i >= 4:
+                add(pluck(mtof(m - 12), 0.5, 0.7, 0.8), bar_t(b, beat), 0.22, 0.35)
 
-    # --- section B (bars 18-25): theremin lead
+    # --- section B (bars 10-17): theremin lead
     th_notes = []
     for bar, beat, dur, m in THEREMIN_B:
-        th_notes.append((bar_t(18 + bar, beat) - 18 * BAR, dur * BEAT - 0.04, m))
+        th_notes.append((bar_t(10 + bar, beat) - 10 * BAR, dur * BEAT - 0.04, m))
     for i in range(8):
-        b = 18 + i
+        b = 10 + i
         groove(b, CHORDS_B[i], 2)
         chord = CHORDS[CHORDS_B[i]][0]
         for k, m in enumerate([chord[0] + 24, chord[1] + 24, chord[2] + 24, chord[1] + 24]):
             add(music_box(mtof(m), 0.9, 0.6), bar_t(b, 0.5 + k), 0.16, 0.5)
-    add(theremin(th_notes, 8 * BAR + 1), 18 * BAR, 0.30, -0.1)
+    add(theremin(th_notes, 8 * BAR + 1), 10 * BAR, 0.30, -0.1)
 
-    # --- outro (bars 26-27) then the final "ta-da" at bar 28 (56 s)
-    for i, chord in enumerate(["Dm", "A7"]):
-        b = 26 + i
+    # --- outro (bars 18-20) then the final "ta-da" at bar 21 (42 s)
+    for i, (chord, mel) in enumerate([("Dm", 0), ("Bb", 2), ("A7", 3)]):
+        b = 18 + i
         groove(b, chord, 2)
-        for beat, dur, m in MELODY_A[i if i == 0 else 3]:
+        for beat, dur, m in MELODY_A[mel]:
             add(music_box(mtof(m), 1.4), bar_t(b, beat), 0.42, 0.1)
-    end = 28 * BAR
+    end = 21 * BAR
     add(pad([62, 66, 69, 74], 3.8, 1.2), end, 0.26)  # bright D-major finish
     add(pluck(mtof(38), 2.5), end, 0.8)
     add(pluck(mtof(50), 2.5), end, 0.5)

@@ -22,7 +22,7 @@ export const FONT = {
 export const FPS = 30;
 export const WIDTH = 1080;
 export const HEIGHT = 1920;
-export const DURATION = 60 * FPS;
+export const DURATION = 45 * FPS;
 
 // Event details – edit here if anything changes.
 export const EVENT = {

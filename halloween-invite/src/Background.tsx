@@ -23,12 +23,12 @@ export const Background: React.FC = () => {
 	});
 	const fadeIn = interpolate(frame, [0, 25], [0, 1], {extrapolateRight: 'clamp'});
 
-	// pumpkins pop out of the ground at 12 s
+	// pumpkins pop out of the ground at ~9.5 s
 	const pumpkin = (start: number) =>
 		spring({frame: frame - start, fps, config: {damping: 9, stiffness: 140, mass: 0.8}});
 	const flicker = (seed: number) => 0.6 + 0.4 * Math.sin(frame / 3 + seed) * Math.sin(frame / 7.3 + seed * 2);
 
-	const spiderIn = spring({frame: frame - 470, fps, config: {damping: 14, stiffness: 60}});
+	const spiderIn = spring({frame: frame - 352, fps, config: {damping: 14, stiffness: 60}});
 
 	return (
 		<AbsoluteFill style={{opacity: fadeIn}}>
@@ -104,13 +104,13 @@ export const Background: React.FC = () => {
 				<path d="M134 150 L 146 34 L 156 34 L 164 150 Z" fill="#1A0F0A" />
 			</svg>
 			{/* pumpkin patch */}
-			<div style={{position: 'absolute', left: 20, bottom: 40, transform: `translateY(${(1 - pumpkin(360)) * 320}px)`}}>
+			<div style={{position: 'absolute', left: 20, bottom: 40, transform: `translateY(${(1 - pumpkin(280)) * 320}px)`}}>
 				<Pumpkin size={270} face="jack" flicker={flicker(1)} />
 			</div>
-			<div style={{position: 'absolute', left: 420, bottom: 20, transform: `translateY(${(1 - pumpkin(372)) * 320}px)`}}>
+			<div style={{position: 'absolute', left: 420, bottom: 20, transform: `translateY(${(1 - pumpkin(290)) * 320}px)`}}>
 				<Pumpkin size={190} face="happy" flicker={flicker(2)} />
 			</div>
-			<div style={{position: 'absolute', right: 30, bottom: 50, transform: `translateY(${(1 - pumpkin(384)) * 320}px)`}}>
+			<div style={{position: 'absolute', right: 30, bottom: 50, transform: `translateY(${(1 - pumpkin(300)) * 320}px)`}}>
 				<Pumpkin size={300} face="cute" />
 			</div>
 			{/* vignette */}

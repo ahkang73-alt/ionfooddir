@@ -91,26 +91,26 @@ const cuteText = (size: number, color = C.white, weight = 600): React.CSSPropert
 // ------------------------------------------------------------------ audio
 const SFX: Array<{at: number; src: string; volume: number}> = [
 	{at: 0, src: 'wind.wav', volume: 0.45},
-	{at: 78, src: 'whoosh.wav', volume: 0.6},
-	{at: 118, src: 'sparkle.wav', volume: 0.45},
-	{at: 150, src: 'chime.wav', volume: 0.55},
-	{at: 262, src: 'whoosh.wav', volume: 0.3},
-	{at: 326, src: 'sparkle.wav', volume: 0.5},
-	{at: 362, src: 'pop.wav', volume: 0.6},
-	{at: 374, src: 'pop.wav', volume: 0.6},
-	{at: 386, src: 'pop.wav', volume: 0.6},
-	{at: 500, src: 'ding.wav', volume: 0.45},
-	{at: 560, src: 'ding.wav', volume: 0.45},
-	{at: 620, src: 'boing.wav', volume: 0.4},
-	{at: 735, src: 'bubbles.wav', volume: 0.55},
-	{at: 790, src: 'ding.wav', volume: 0.45},
-	{at: 900, src: 'sparkle.wav', volume: 0.5},
-	{at: 1020, src: 'ding.wav', volume: 0.45},
-	{at: 1250, src: 'bats.wav', volume: 0.5},
-	{at: 1320, src: 'boing.wav', volume: 0.35},
-	{at: 1505, src: 'chime.wav', volume: 0.5},
-	{at: 1585, src: 'whoosh.wav', volume: 0.5},
-	{at: 1680, src: 'tada.wav', volume: 0.55},
+	{at: 50, src: 'whoosh.wav', volume: 0.6},
+	{at: 85, src: 'sparkle.wav', volume: 0.45},
+	{at: 110, src: 'chime.wav', volume: 0.55},
+	{at: 194, src: 'whoosh.wav', volume: 0.3},
+	{at: 248, src: 'sparkle.wav', volume: 0.5},
+	{at: 282, src: 'pop.wav', volume: 0.6},
+	{at: 292, src: 'pop.wav', volume: 0.6},
+	{at: 302, src: 'pop.wav', volume: 0.6},
+	{at: 374, src: 'ding.wav', volume: 0.45},
+	{at: 420, src: 'ding.wav', volume: 0.45},
+	{at: 466, src: 'boing.wav', volume: 0.4},
+	{at: 566, src: 'bubbles.wav', volume: 0.55},
+	{at: 604, src: 'ding.wav', volume: 0.45},
+	{at: 689, src: 'sparkle.wav', volume: 0.5},
+	{at: 774, src: 'ding.wav', volume: 0.45},
+	{at: 945, src: 'bats.wav', volume: 0.5},
+	{at: 1000, src: 'boing.wav', volume: 0.35},
+	{at: 1113, src: 'chime.wav', volume: 0.5},
+	{at: 1172, src: 'whoosh.wav', volume: 0.5},
+	{at: 1260, src: 'tada.wav', volume: 0.55},
 ];
 
 const Soundtrack: React.FC = () => (
@@ -128,13 +128,13 @@ const Soundtrack: React.FC = () => (
 );
 
 // ------------------------------------------------------------------ logo (persistent)
-const LOGO_KEYS = [150, 175, 225, 258, 1500, 1535];
+const LOGO_KEYS = [110, 135, 168, 198, 1110, 1142];
 const PersistentLogo: React.FC = () => {
 	const f = useCurrentFrame();
 	const y = interpolate(f, LOGO_KEYS, [800, 760, 760, 150, 150, 500], {...clamp, easing: ease});
 	const w = interpolate(f, LOGO_KEYS, [560, 600, 600, 270, 270, 500], {...clamp, easing: ease});
-	const opacity = interpolate(f, [150, 175], [0, 1], clamp);
-	const halo = interpolate(f, [150, 175, 225, 258, 1500, 1535], [0, 1, 1, 0, 0, 1], clamp);
+	const opacity = interpolate(f, [110, 135], [0, 1], clamp);
+	const halo = interpolate(f, LOGO_KEYS, [0, 1, 1, 0, 0, 1], clamp);
 	return (
 		<div
 			style={{
@@ -221,7 +221,7 @@ const FlyingWitch: React.FC<{start: number; end: number; y0: number; y1: number;
 // ------------------------------------------------------------------ scenes
 const IntroLine: React.FC = () => {
 	const f = useCurrentFrame();
-	const o = inOut(f, 185, 228, 14);
+	const o = inOut(f, 138, 172, 12);
 	return (
 		<div style={{...centered, top: 1060, opacity: o, transform: `translateY(${(1 - o) * 20}px)`}}>
 			<div style={{...cuteText(54, C.orangeLight, 400)}}>has a spooky-sweet surprise for you…</div>
@@ -232,12 +232,12 @@ const IntroLine: React.FC = () => {
 const TitleScene: React.FC = () => {
 	const f = useCurrentFrame();
 	const {fps} = useVideoConfig();
-	const exit = interpolate(f, [450, 478], [1, 0], {...clamp, easing: ease});
-	const invited = interpolate(f, [250, 268], [0, 1], {...clamp, easing: ease});
+	const exit = interpolate(f, [335, 360], [1, 0], {...clamp, easing: ease});
+	const invited = interpolate(f, [186, 202], [0, 1], {...clamp, easing: ease});
 	const word = 'HALLOWEEN';
-	const party = spring({frame: f - 326, fps, config: {damping: 10, stiffness: 120}});
-	const atCeleVenus = interpolate(f, [345, 365], [0, 1], clamp);
-	if (f < 240 || f > 480) return null;
+	const party = spring({frame: f - 248, fps, config: {damping: 10, stiffness: 120}});
+	const atCeleVenus = interpolate(f, [264, 282], [0, 1], clamp);
+	if (f < 180 || f > 362) return null;
 	return (
 		<AbsoluteFill style={{opacity: exit, transform: `scale(${0.9 + 0.1 * exit})`}}>
 			<div style={{...centered, top: 450, opacity: invited, transform: `translateY(${(1 - invited) * 30}px)`}}>
@@ -245,7 +245,7 @@ const TitleScene: React.FC = () => {
 			</div>
 			<div style={{...centered, top: 570, display: 'flex', justifyContent: 'center'}}>
 				{word.split('').map((ch, i) => {
-					const s = spring({frame: f - 268 - i * 4, fps, config: {damping: 9, stiffness: 150}});
+					const s = spring({frame: f - 200 - i * 4, fps, config: {damping: 9, stiffness: 150}});
 					return (
 						<span
 							key={i}
@@ -278,12 +278,12 @@ const TitleScene: React.FC = () => {
 const DateScene: React.FC = () => {
 	const f = useCurrentFrame();
 	const {fps} = useVideoConfig();
-	if (f < 480 || f > 722) return null;
-	const exit = interpolate(f, [690, 720], [1, 0], {...clamp, easing: ease});
-	const head = interpolate(f, [488, 505], [0, 1], {...clamp, easing: ease});
-	const card = spring({frame: f - 496, fps, config: {damping: 13, stiffness: 90}});
-	const pill = spring({frame: f - 556, fps, config: {damping: 12, stiffness: 110}});
-	const ghost = spring({frame: f - 616, fps, config: {damping: 7, stiffness: 120}});
+	if (f < 360 || f > 557) return null;
+	const exit = interpolate(f, [528, 555], [1, 0], {...clamp, easing: ease});
+	const head = interpolate(f, [364, 380], [0, 1], {...clamp, easing: ease});
+	const card = spring({frame: f - 370, fps, config: {damping: 13, stiffness: 90}});
+	const pill = spring({frame: f - 416, fps, config: {damping: 12, stiffness: 110}});
+	const ghost = spring({frame: f - 462, fps, config: {damping: 7, stiffness: 120}});
 	return (
 		<AbsoluteFill style={{opacity: exit}}>
 			<div style={{...centered, top: 400, opacity: head}}>
@@ -361,17 +361,17 @@ const DateScene: React.FC = () => {
 };
 
 const ITEMS = [
-	{at: 786, Icon: GiftIcon, title: 'Exciting prizes', sub: 'to be won at the party!'},
-	{at: 896, Icon: TagIcon, title: 'Special offers on procedures', sub: 'Party hours only  •  3 – 6 PM'},
-	{at: 1016, Icon: CupcakeIcon, title: 'Finger food served', sub: 'Treat yourself & mingle with us'},
+	{at: 600, Icon: GiftIcon, title: 'Exciting prizes', sub: 'to be won at the party!'},
+	{at: 685, Icon: TagIcon, title: 'Special offers on procedures', sub: 'Party hours only  •  3 – 6 PM'},
+	{at: 770, Icon: CupcakeIcon, title: 'Finger food served', sub: 'Treat yourself & mingle with us'},
 ];
 
 const TreatsScene: React.FC = () => {
 	const f = useCurrentFrame();
 	const {fps} = useVideoConfig();
-	if (f < 720 || f > 1232) return null;
-	const exit = interpolate(f, [1200, 1230], [1, 0], {...clamp, easing: ease});
-	const head = spring({frame: f - 728, fps, config: {damping: 11, stiffness: 110}});
+	if (f < 555 || f > 932) return null;
+	const exit = interpolate(f, [902, 930], [1, 0], {...clamp, easing: ease});
+	const head = spring({frame: f - 562, fps, config: {damping: 11, stiffness: 110}});
 	return (
 		<AbsoluteFill style={{opacity: exit}}>
 			<div style={{...centered, top: 380, transform: `scale(${head})`}}>
@@ -435,12 +435,12 @@ const TreatsScene: React.FC = () => {
 const EnjoyScene: React.FC = () => {
 	const f = useCurrentFrame();
 	const {fps} = useVideoConfig();
-	if (f < 1230 || f > 1502) return null;
-	const exit = interpolate(f, [1470, 1500], [1, 0], {...clamp, easing: ease});
-	const l1 = spring({frame: f - 1240, fps, config: {damping: 10, stiffness: 120}});
-	const l2 = spring({frame: f - 1256, fps, config: {damping: 10, stiffness: 120}});
-	const body = interpolate(f, [1285, 1305], [0, 1], {...clamp, easing: ease});
-	const ghosts = spring({frame: f - 1316, fps, config: {damping: 8, stiffness: 100}});
+	if (f < 930 || f > 1112) return null;
+	const exit = interpolate(f, [1084, 1110], [1, 0], {...clamp, easing: ease});
+	const l1 = spring({frame: f - 938, fps, config: {damping: 10, stiffness: 120}});
+	const l2 = spring({frame: f - 952, fps, config: {damping: 10, stiffness: 120}});
+	const body = interpolate(f, [972, 990], [0, 1], {...clamp, easing: ease});
+	const ghosts = spring({frame: f - 998, fps, config: {damping: 8, stiffness: 100}});
 	return (
 		<AbsoluteFill style={{opacity: exit}}>
 			<div style={{...centered, top: 420, transform: `scale(${l1}) rotate(${(1 - l1) * -10}deg)`}}>
@@ -457,7 +457,7 @@ const EnjoyScene: React.FC = () => {
 			</div>
 			{/* bats swooping across */}
 			{[0, 1, 2].map((i) => {
-				const p = (f - 1248 - i * 6) / 60;
+				const p = (f - 943 - i * 6) / 60;
 				if (p < 0 || p > 1.1) return null;
 				return (
 					<Bat
@@ -493,19 +493,19 @@ const EnjoyScene: React.FC = () => {
 const OutroScene: React.FC = () => {
 	const f = useCurrentFrame();
 	const {fps} = useVideoConfig();
-	if (f < 1500) return null;
+	if (f < 1110) return null;
 	const a = (start: number) => interpolate(f, [start, start + 18], [0, 1], {...clamp, easing: ease});
-	const see = spring({frame: f - 1680, fps, config: {damping: 8, stiffness: 130}});
+	const see = spring({frame: f - 1260, fps, config: {damping: 8, stiffness: 130}});
 	return (
 		<AbsoluteFill>
-			<div style={{...centered, top: 790, opacity: a(1530), transform: `translateY(${(1 - a(1530)) * 30}px)`}}>
+			<div style={{...centered, top: 790, opacity: a(1135), transform: `translateY(${(1 - a(1135)) * 30}px)`}}>
 				<div style={spookyText(118, C.orange)}>Halloween Party</div>
 			</div>
-			<div style={{...centered, top: 940, opacity: a(1550)}}>
+			<div style={{...centered, top: 940, opacity: a(1152)}}>
 				<div style={cuteText(60)}>Friday, 30 October 2026</div>
 				<div style={{...cuteText(60, C.orangeLight), marginTop: 8}}>{EVENT.time}</div>
 			</div>
-			<div style={{...centered, top: 1120, opacity: a(1572)}}>
+			<div style={{...centered, top: 1120, opacity: a(1170)}}>
 				<div style={{...cuteText(38, C.cream, 400)}}>
 					{EVENT.addressLine1}
 					<br />
@@ -518,8 +518,8 @@ const OutroScene: React.FC = () => {
 			{see > 0.05 &&
 				Array.from({length: 10}, (_, i) => {
 					const ang = (i / 10) * Math.PI * 2;
-					const d = interpolate(f - 1680, [0, 30], [40, 330], {...clamp, easing: ease});
-					const o = interpolate(f - 1680, [0, 10, 50, 70], [0, 1, 1, 0.25], clamp);
+					const d = interpolate(f - 1260, [0, 30], [40, 330], {...clamp, easing: ease});
+					const o = interpolate(f - 1260, [0, 10, 50, 70], [0, 1, 1, 0.25], clamp);
 					return (
 						<Sparkle
 							key={i}
@@ -545,8 +545,8 @@ export const HalloweenInvite: React.FC = () => {
 	return (
 		<AbsoluteFill style={{background: C.black}}>
 			<Background />
-			<FlyingWitch start={50} end={175} y0={420} y1={300} size={340} />
-			<FlyingWitch start={1570} end={1690} y0={150} y1={90} size={260} />
+			<FlyingWitch start={30} end={135} y0={420} y1={300} size={340} />
+			<FlyingWitch start={1160} end={1265} y0={150} y1={90} size={260} />
 			<PersistentLogo />
 			<IntroLine />
 			<TitleScene />
