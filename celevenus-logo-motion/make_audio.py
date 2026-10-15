@@ -6,7 +6,7 @@ Timeline matches logo_motion.html:
   2.1-3.5   letters glide in left to right on 16ths   -> rising celesta melody, soft ticks
   3.5-4.0   build                                     -> snare roll, riser, reverse cymbal
   4.0       the V lands in the middle (DROP)          -> impact, crash, one bar of light groove
-  6.0-8.0   resolve                                   -> rolled bell chord over a warm pad, long tail
+  6.0-8.0   camera pushes in, resolve                 -> rolled bell chord over a warm pad, airy swell, long tail
 Usage: python3 make_audio.py out.wav
 """
 import sys
@@ -295,6 +295,9 @@ for i, t in enumerate(GLINTS):
 place(impact(0.15), GROOVE_END, 0.3, bus='sfx', send=0.5)
 for i, m in enumerate((57, 64, 69, 71, 72, 76, 81)):
     place(celesta(m), GROOVE_END + i * 0.055, 0.12, p=-0.6 + i * 0.2, bus='sfx', send=0.7)
+n_sw = int(SR * 1.6)                          # soft airy swell under the final camera push-in
+sw = svf(noise(n_sw), 400 * (8 ** np.linspace(0, 1, n_sw)), 0.9) * np.sin(np.pi * np.linspace(0, 1, n_sw)) ** 2
+place(sw, 6.0, 0.07, bus='sfx', send=0.5)
 for i, m in enumerate((93, 96, 100, 105)):   # final shimmer with the light sweep
     place(bell(m, 1.5, 2.5), 6.3 + i * 0.09, 0.035, p=0.6 - i * 0.3, bus='sfx', send=0.7)
 

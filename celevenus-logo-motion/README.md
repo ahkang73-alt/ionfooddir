@@ -17,8 +17,8 @@ The earlier 12-second cut (16:9 and 9:16) is kept as `v1_12s_*.mp4`.
 | 3.5 – 4.0 s | The V drops from above into the gap | Snare roll, riser, reverse cymbal |
 | 4.0 s | The V lands in the middle: soft flash, gold shockwave | Impact and crash, one bar of light groove |
 | 4.15 – 6 s | Light sweep, rays, gentle beat pulse | Groove with sparkles |
-| 6.0 – 7.3 s | A final light sweep and glints, the rays settle | The music resolves into a rolled Am(add9) bell chord over a warm pad, with a long tail |
-| 7.35 – 8.0 s | Fade to black | Fade out |
+| 6.0 – 7.6 s | The camera pushes in until the logo is about 1.4× bigger, with a final light sweep and glints | The music resolves into a rolled Am(add9) bell chord over a warm pad, with a long tail and an airy swell under the push-in |
+| 7.5 – 8.0 s | Fade to black | Fade out |
 
 All music and sound effects are synthesized from scratch in `make_audio.py`, so there are no third-party licences to worry about.
 

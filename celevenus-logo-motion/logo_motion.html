@@ -86,6 +86,7 @@ const SWIRL_DONE = 2.0;
 const LAND = [2.625, 2.75, 2.875, 3.0, 4.0, 3.125, 3.25, 3.375, 3.5]; // C E L E V E N U S, left to right; V lands on the drop
 const GLIDE = 0.55, GLIDE_H = 300; // each letter glides down from just above its place
 const DROP = 4.0, GROOVE_END = 6.0;
+const ZOOM_START = 6.0, ZOOM_END = 7.6, ZOOM = 1.38; // final camera push-in
 const GLINTS = [
   { t: 4.5, x: 722, y: 378, s: 1.1 },
   { t: 5.3, x: 150, y: 210, s: 0.9 },
@@ -347,9 +348,11 @@ function render(t) {
   drawBackground(t, pulse);
 
   const push = 0.93 + 0.09 * easeInOutCubic(clamp(t / DUR));
-  const sc = baseScale * push * (1 + 0.006 * pulse);
+  const z = easeInOutCubic(clamp((t - ZOOM_START) / (ZOOM_END - ZOOM_START)));
+  const sc = baseScale * push * (1 + (ZOOM - 1) * z) * (1 + 0.006 * pulse);
   const [sx, sy] = shake(t);
-  const M = [sc, 0, 0, sc, W / 2 + sx - LW * sc / 2, H / 2 + sy - LH * sc / 2 + (isPortrait ? 0 : 10)];
+  const fy = lerp(LH / 2, 470, z); // drift the focus slightly toward the wordmark while zooming
+  const M = [sc, 0, 0, sc, W / 2 + sx - LW * sc / 2, H / 2 + sy - fy * sc + (isPortrait ? 0 : 10) * (1 - z)];
 
   lctx.setTransform(1, 0, 0, 1, 0, 0); lctx.clearRect(0, 0, W, H);
   lctx.setTransform(...M);
@@ -380,7 +383,7 @@ function render(t) {
   ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
 
   // fade in / out
-  const black = Math.max(1 - ss(0, 0.5, t), ss(7.35, 8, t));
+  const black = Math.max(1 - ss(0, 0.5, t), ss(7.5, 8, t));
   if (black > 0) { ctx.fillStyle = `rgba(0,0,0,${black})`; ctx.fillRect(0, 0, W, H); }
 }
 
