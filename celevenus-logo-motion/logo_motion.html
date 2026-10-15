@@ -20,7 +20,7 @@
 
 const P = new URLSearchParams(location.search);
 const W = +(P.get('w') || 1920), H = +(P.get('h') || 1080);
-const DUR = 12;
+const DUR = 8;
 
 const cv = document.getElementById('c');
 cv.width = W; cv.height = H;
@@ -81,32 +81,49 @@ subs.sort((a, b) => b.len - a.len);
 const letters = LOGO.letters.map(d => ({ p: new Path2D(d), bb: svgPath(d).getBBox() }));
 
 // ---------- timeline (seconds; 120 BPM, beat = 0.5s) ----------
-const TRACE_START = 0.6, TRACE_DUR = 1.9;
-const SWIRL_DONE = 3.0;
-const LAND = [3.75, 4.0, 4.25, 4.5, 6.0, 4.75, 5.0, 5.25, 5.5]; // C E L E V E N U S — V lands on the drop
-const DROP = 6.0, FINAL = 10.0;
+const TRACE_START = 0.25, TRACE_DUR = 1.3;
+const SWIRL_DONE = 2.0;
+const LAND = [2.75, 2.875, 3.0, 3.125, 4.0, 3.25, 3.375, 3.5, 3.625]; // C E L E V E N U S — V lands on the drop
+const FLIGHT = 0.55;
+// where each letter flies in from (logo units); s > 1 = zooms in from the camera
+const FLY = [
+  { dx: -1500, dy: -150, rot: -0.9, s: 1 },   // C  from the left
+  { dx: -200, dy: -1100, rot: 0.6, s: 1 },    // E  from the top
+  { dx: 0, dy: 0, rot: 0.35, s: 5 },          // L  from the camera
+  { dx: 100, dy: 1100, rot: -0.5, s: 1 },     // E  from the bottom
+  null,                                       // V  slams down on the drop
+  { dx: 1200, dy: -900, rot: 0.8, s: 1 },     // E  from the top right
+  { dx: 0, dy: 0, rot: -0.35, s: 5 },         // N  from the camera
+  { dx: 900, dy: 1000, rot: -0.7, s: 1 },     // U  from the bottom right
+  { dx: 1500, dy: 150, rot: 0.9, s: 1 },      // S  from the right
+];
+const DROP = 4.0, GROOVE_END = 6.0;
+const HEART = [[6.0, 1], [6.2, 0.7], [6.85, 1], [7.05, 0.7]]; // lub-dub, lub-dub
 const GLINTS = [
-  { t: 6.55, x: 722, y: 378, s: 1.2 },
-  { t: 7.45, x: 1062, y: 405, s: 0.9 },
-  { t: 8.3, x: 150, y: 210, s: 1.0 },
-  { t: 9.1, x: 1243, y: 432, s: 0.8 },
-  { t: 10.0, x: 618, y: 604, s: 1.5 },
-  { t: 10.25, x: 1060, y: 190, s: 0.9 },
+  { t: 4.5, x: 722, y: 378, s: 1.2 },
+  { t: 5.15, x: 1062, y: 405, s: 0.9 },
+  { t: 5.6, x: 150, y: 210, s: 1.0 },
+  { t: 6.0, x: 618, y: 604, s: 1.4 },
+  { t: 6.85, x: 1243, y: 432, s: 0.9 },
 ];
 
 const isPortrait = H > W;
 const baseScale = Math.min(W * (isPortrait ? 0.84 : 0.62) / LW, H * 0.6 / LH);
 
 function beatPulse(t) {
-  if (t >= DROP && t < FINAL) return Math.exp(-(((t - DROP) / 0.5) % 1) * 7);
-  if (t >= FINAL) return Math.exp(-(t - FINAL) * 3);
+  if (t >= DROP && t < GROOVE_END) return Math.exp(-(((t - DROP) / 0.5) % 1) * 7);
   return 0;
+}
+function heartbeat(t) {
+  let h = 0;
+  for (const [T, a] of HEART) { const u = t - T; if (u >= 0) h += a * Math.min(1, u / 0.045) * Math.exp(-Math.max(0, u - 0.045) * 9); }
+  return h;
 }
 function shake(t) {
   let x = 0, y = 0;
   const add = (T, A) => { const u = t - T; if (u >= 0 && u < 0.7) { const e = A * Math.exp(-u * 9); x += e * Math.sin(u * 95); y += e * Math.cos(u * 83); } };
-  LAND.forEach((T, i) => add(T, i === 4 ? 18 : 2.5));
-  add(FINAL, 5);
+  LAND.forEach((T, i) => add(T, i === 4 ? 18 : 2));
+  HEART.forEach(([T, a]) => add(T, 3 * a));
   const k = Math.min(W, H) / 1080;
   return [x * k, y * k];
 }
@@ -114,7 +131,7 @@ function shake(t) {
 // ---------- background ----------
 const bokeh = (() => { const r = rng(11); const a = []; for (let i = 0; i < 90; i++) a.push({ x: r(), y: r(), z: r(), ph: r() * 6.28, c: r() < 0.6 ? GOLD : ROSE }); return a; })();
 
-function drawBackground(t, pulse) {
+function drawBackground(t, pulse, hb) {
   const k = Math.min(W, H) / 1080;
   ctx.globalCompositeOperation = 'source-over';
   const R = Math.hypot(W, H) * 0.6;
@@ -124,13 +141,13 @@ function drawBackground(t, pulse) {
 
   ctx.globalCompositeOperation = 'lighter';
   // warm rose glow behind the logo, swells on the drop and breathes with the beat
-  const gi = 0.07 + 0.10 * ss(5.9, 6.4, t) + 0.07 * pulse;
+  const gi = 0.07 + 0.10 * ss(3.9, 4.4, t) + 0.07 * pulse + 0.16 * hb;
   g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.min(W, H) * 0.62);
   g.addColorStop(0, rgba(ROSE, gi)); g.addColorStop(1, rgba(ROSE, 0));
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
   // slow light rays after the drop
-  const raysA = ss(5.95, 6.6, t) * (0.05 + 0.03 * pulse);
+  const raysA = ss(3.95, 4.6, t) * (0.05 + 0.03 * pulse + 0.03 * hb);
   if (raysA > 0) {
     const Rr = Math.hypot(W, H) * 0.7;
     const rg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Rr);
@@ -161,14 +178,14 @@ function drawBackground(t, pulse) {
 
 // ---------- logo pieces ----------
 function drawSwirl(c, t) {
-  const a = ss(2.0, 3.25, t);
+  const a = ss(1.3, 2.15, t);
   if (a <= 0) return;
   const g = c.createLinearGradient(100, 0, 1150, 880);
   g.addColorStop(0, '#c9c3bb'); g.addColorStop(0.45, '#a7a9ac'); g.addColorStop(1, '#bdb6ad');
   c.globalAlpha = a; c.fillStyle = g;
   swirlFill.forEach(p => c.fill(p, 'evenodd'));
   // golden ink bloom as the swirl solidifies
-  const bloom = Math.exp(-Math.pow((t - SWIRL_DONE) / 0.35, 2)) * 0.55;
+  const bloom = Math.exp(-Math.pow((t - SWIRL_DONE) / 0.3, 2)) * 0.55;
   if (bloom > 0.01) {
     c.globalCompositeOperation = 'lighter'; c.globalAlpha = bloom; c.fillStyle = rgba(GOLD, 1);
     swirlFill.forEach(p => c.fill(p, 'evenodd'));
@@ -178,25 +195,35 @@ function drawSwirl(c, t) {
 }
 
 function letterState(i, t) {
-  const T = LAND[i], isV = i === 4;
-  const fall = isV ? 0.45 : 0.36, D = isV ? 1300 : 950;
-  if (t < T - fall) return null;
-  if (t < T) {
-    const p = (t - (T - fall)) / fall;
-    return { dy: -D * (1 - p * p), rot: (isV ? 0 : 0.35 * (i % 2 ? 1 : -1)) * (1 - p) * (1 - p),
-             sx: 1 - 0.06 * p, sy: 1 + 0.14 * p, a: clamp(p * 3.5), falling: p };
+  const T = LAND[i];
+  if (i === 4) { // the V drops from above and squashes on impact
+    const fall = 0.42, D = 1300;
+    if (t < T - fall) return null;
+    if (t < T) {
+      const p = (t - (T - fall)) / fall;
+      return { dx: 0, dy: -D * (1 - p * p), rot: 0, sx: 1 - 0.06 * p, sy: 1 + 0.14 * p, a: clamp(p * 3.5), falling: p, base: true };
+    }
+    const sq = 0.24 * Math.exp(-(t - T) * 9) * Math.cos((t - T) * 30);
+    return { dx: 0, dy: 0, rot: 0, sx: 1 + sq * 0.6, sy: 1 - sq, a: 1, falling: -1, base: true };
   }
-  const u = t - T;
-  const bounce = isV ? 0 : -26 * Math.exp(-u * 8) * Math.abs(Math.sin(u * 19));
-  const sq = (isV ? 0.24 : 0.16) * Math.exp(-u * 9) * Math.cos(u * 30);
-  return { dy: bounce, rot: 0, sx: 1 + sq * 0.6, sy: 1 - sq, a: 1, falling: -1 };
+  const F = FLY[i];
+  if (t < T - FLIGHT) return null;
+  if (t < T) { // accelerate in from its direction
+    const p = (t - (T - FLIGHT)) / FLIGHT, q = 1 - p * p;
+    const k = 1 + (F.s - 1) * q;
+    return { dx: F.dx * q, dy: F.dy * q, rot: F.rot * q, sx: k, sy: k, a: clamp(p * (F.s > 1 ? 1.6 : 3.5)), falling: p };
+  }
+  const u = t - T, n = Math.hypot(F.dx, F.dy) || 1;
+  const rec = 24 * Math.exp(-u * 8) * Math.sin(u * 19); // recoil back toward where it came from
+  const pop = 1 + 0.09 * Math.exp(-u * 9) * Math.cos(u * 28);
+  return { dx: F.dx / n * rec, dy: F.dy / n * rec, rot: 0, sx: pop, sy: pop, a: 1, falling: -1 };
 }
 
 function drawLetter(c, L, s, alpha) {
-  const cx = L.bb.x + L.bb.width / 2, by = L.bb.y + L.bb.height;
+  const cx = L.bb.x + L.bb.width / 2, by = s.base ? L.bb.y + L.bb.height : L.bb.y + L.bb.height / 2;
   c.save();
   c.globalAlpha = alpha;
-  c.translate(cx, by + s.dy); c.rotate(s.rot); c.scale(s.sx, s.sy); c.translate(-cx, -by);
+  c.translate(cx + s.dx, by + s.dy); c.rotate(s.rot); c.scale(s.sx, s.sy); c.translate(-cx, -by);
   c.fill(L.p);
   c.restore();
 }
@@ -233,11 +260,11 @@ function drawShine(c, t, T0, T1, strength) {
 }
 
 function drawTrace(c, t, sc) {
-  const fade = 1 - ss(2.7, 3.6, t);
+  const fade = 1 - ss(1.75, 2.45, t);
   if (fade <= 0 || t < TRACE_START) return;
   c.lineCap = 'round'; c.lineJoin = 'round';
   subs.forEach((s, k) => {
-    const p = easeInOutCubic(clamp((t - TRACE_START - k * 0.11) / TRACE_DUR));
+    const p = easeInOutCubic(clamp((t - TRACE_START - k * 0.06) / TRACE_DUR));
     if (p <= 0) return;
     c.save();
     c.setLineDash([s.len, s.len]); c.lineDashOffset = s.len * (1 - p);
@@ -269,7 +296,7 @@ const dustSeeds = letters.map((_, i) => {
 function drawDust(c, t, sc) {
   c.globalCompositeOperation = 'lighter';
   letters.forEach((L, i) => {
-    const isV = i === 4, life = isV ? 1.5 : 0.75, u = t - LAND[i];
+    const isV = i === 4, life = isV ? 1.3 : 0.7, u = t - LAND[i];
     if (u < 0 || u > life) return;
     dustSeeds[i].forEach(([a, b, d, e]) => {
       let ox, oy, vx, vy;
@@ -278,10 +305,11 @@ function drawDust(c, t, sc) {
         const ang = -Math.PI * (0.05 + 0.9 * a), sp = 250 + 900 * b;
         vx = Math.cos(ang) * sp; vy = Math.sin(ang) * sp;
       } else {
-        ox = L.bb.x + a * L.bb.width; oy = L.bb.y + L.bb.height;
-        vx = (b - 0.5) * 520; vy = -(60 + d * 260);
+        ox = L.bb.x + a * L.bb.width; oy = L.bb.y + d * L.bb.height;
+        const ang = (b + a) * Math.PI * 2, sp = 120 + 380 * d;
+        vx = Math.cos(ang) * sp; vy = Math.sin(ang) * sp - 80;
       }
-      const x = ox + vx * u, y = oy + vy * u + 0.5 * 700 * u * u;
+      const x = ox + vx * u, y = oy + vy * u + 0.5 * (isV ? 700 : 300) * u * u;
       const al = Math.pow(1 - u / life, 1.6) * (0.5 + 0.5 * e);
       const r = (1.5 + e * (isV ? 4 : 2.6)) / sc;
       c.fillStyle = rgba(e > 0.5 ? CREAM : GOLD, al);
@@ -335,16 +363,31 @@ function drawGlints(c, t, sc) {
   c.globalCompositeOperation = 'source-over';
 }
 
+function drawHeartRipple(t) {
+  const m = Math.min(W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  HEART.forEach(([T, a]) => {
+    const q = (t - T) / 0.9;
+    if (q <= 0 || q >= 1) return;
+    const r = m * (0.22 + 0.55 * easeOutCubic(q));
+    ctx.strokeStyle = rgba(ROSE, 0.35 * a * Math.pow(1 - q, 2));
+    ctx.lineWidth = m * 0.012 * (1 - q) + 1;
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2); ctx.stroke();
+  });
+  ctx.globalCompositeOperation = 'source-over';
+}
+
 function flash(t, T, amt, decay) { const u = t - T; return u >= 0 ? amt * Math.exp(-u * decay) : 0; }
 
 // ---------- frame ----------
 function render(t) {
-  const pulse = beatPulse(t);
+  const pulse = beatPulse(t), hb = heartbeat(t);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
-  drawBackground(t, pulse);
+  drawBackground(t, pulse, hb);
+  drawHeartRipple(t);
 
   const push = 0.93 + 0.09 * easeInOutCubic(clamp(t / DUR));
-  const sc = baseScale * push * (1 + 0.008 * pulse);
+  const sc = baseScale * push * (1 + 0.008 * pulse + 0.055 * hb);
   const [sx, sy] = shake(t);
   const M = [sc, 0, 0, sc, W / 2 + sx - LW * sc / 2, H / 2 + sy - LH * sc / 2 + (isPortrait ? 0 : 10)];
 
@@ -352,11 +395,11 @@ function render(t) {
   lctx.setTransform(...M);
   drawSwirl(lctx, t);
   drawLetters(lctx, t);
-  drawShine(lctx, t, 6.25, 7.15, 0.9);
-  drawShine(lctx, t, 9.55, 10.35, 0.7);
+  drawShine(lctx, t, 4.15, 4.95, 0.9);
+  drawShine(lctx, t, 6.85, 7.5, 0.5);
 
   ctx.save();
-  ctx.shadowColor = rgba(ROSE, 0.35 + 0.25 * pulse); ctx.shadowBlur = 40 * Math.min(W, H) / 1080;
+  ctx.shadowColor = rgba(ROSE, Math.min(1, 0.35 + 0.25 * pulse + 0.45 * hb)); ctx.shadowBlur = (40 + 30 * hb) * Math.min(W, H) / 1080;
   ctx.drawImage(layer, 0, 0);
   ctx.restore();
 
@@ -368,7 +411,7 @@ function render(t) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 
   // flashes
-  const f = flash(t, DROP, 0.4, 8) + flash(t, SWIRL_DONE, 0.08, 6) + flash(t, FINAL, 0.1, 6);
+  const f = flash(t, DROP, 0.4, 8) + flash(t, SWIRL_DONE, 0.08, 6) + 0.05 * hb;
   if (f > 0.002) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = rgba(CREAM, f); ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over'; }
 
   // vignette
@@ -377,7 +420,7 @@ function render(t) {
   ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
 
   // fade in / out
-  const black = Math.max(1 - ss(0, 0.9, t), ss(11.35, 12, t));
+  const black = Math.max(1 - ss(0, 0.5, t), ss(7.4, 8, t));
   if (black > 0) { ctx.fillStyle = `rgba(0,0,0,${black})`; ctx.fillRect(0, 0, W, H); }
 }
 

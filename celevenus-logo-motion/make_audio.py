@@ -1,12 +1,12 @@
-"""Synthesize the CeleVenus logo sting soundtrack (music + SFX), 12 s, 120 BPM, A minor.
+"""Synthesize the CeleVenus logo sting soundtrack (music + SFX), 8 s, 120 BPM, A minor.
 
 Timeline matches logo_motion.html:
-  0.6-2.5  gold pen traces the calligraphy C  -> whoosh, riser, arp
-  3.0      swirl solidifies                    -> shimmer chime
-  3.75-5.5 letters C E L E E N U S land on 8ths -> thud + rising notes, snare roll, riser
-  6.0      the V slams down (DROP)             -> impact, crash, full groove
-  6.25     light sweep                         -> sparkle glissando
-  10.0     final hit                           -> Am chord + crash, reverb tail
+  0.25-1.6  gold pen traces the calligraphy C        -> whooshes, riser, soft arp
+  2.0       swirl solidifies                          -> shimmer chime
+  2.2-3.6   letters fly in from every direction       -> panned whooshes, landing ticks + rising notes
+  3.5-4.0   build                                     -> snare roll, riser, reverse cymbal
+  4.0       the V slams down (DROP)                   -> impact, crash, one bar of groove
+  6.0-7.2   music drops out, logo beats like a heart  -> lub-dub x2 over a held chord
 Usage: python3 make_audio.py out.wav
 """
 import sys
@@ -15,7 +15,7 @@ import numpy as np
 from scipy.signal import butter, sosfilt, fftconvolve, sawtooth
 
 SR = 44100
-DUR = 12.0
+DUR = 8.0
 N = int(SR * DUR)
 rng = np.random.default_rng(7)
 
@@ -68,6 +68,11 @@ def svf(x, fc, q=0.8, mode='bp'):
 
 def noise(n):
     return rng.standard_normal(n)
+
+
+def pan_sweep(x, p0, p1):
+    a = (np.linspace(p0, p1, len(x)) + 1) * np.pi / 4
+    return np.stack([x * np.cos(a), x * np.sin(a)], 1)
 
 
 # ---------------- instruments ----------------
@@ -185,6 +190,14 @@ def impact(big=1.0):
     return np.tanh((sub * 1.2 + body * 0.8 * big + click) * 1.4)
 
 
+def heartbeat(strength=1.0):
+    t = T(int(SR * 0.6))
+    f = 55 + 95 * np.exp(-t * 20)          # enough body to be heard on phone speakers
+    s = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 11)
+    s += filt(noise(len(t)), 'lowpass', 400) * np.exp(-t * 40) * 0.5
+    return np.tanh(s * 2.2) * strength
+
+
 def thud():
     t = T(int(SR * 0.3))
     f = 150 * np.exp(-t * 20) + 70
@@ -195,126 +208,123 @@ def thud():
 
 # ---------------- arrangement ----------------
 AM, F, G = (57, 60, 64), (53, 57, 60), (55, 59, 62)
-DROP, FINAL = 6.0, 10.0
-LAND = [3.75, 4.0, 4.25, 4.5, 4.75, 5.0, 5.25, 5.5]   # C E L E . E N U S (V lands on DROP)
-GLINTS = [6.55, 7.45, 8.3, 9.1, 10.0, 10.25]
-
-# intro pads (filter opening as tension builds)
-place(pad(AM, 2.0, cutoff=900, att=1.2), 0.0, 0.55)
-place(pad(F, 2.0, cutoff=1300, att=0.3), 2.0, 0.6)
-place(pad(G, 1.95, cutoff=2200, att=0.3, rel=0.15), 4.0, 0.65)
-# groove pads
-place(pad(AM, 2.0, cutoff=2600, att=0.05), 6.0, 0.7)
-place(pad(F, 1.0, cutoff=2600, att=0.05), 8.0, 0.7)
-place(pad(G, 1.0, cutoff=2600, att=0.05), 9.0, 0.7)
-place(pad(AM + (69,), 1.6, cutoff=2400, att=0.02, rel=1.2), FINAL, 0.8, send=0.5)
+DROP, GROOVE_END = 4.0, 6.0
+FLIGHT = 0.55
+LAND = [2.75, 2.875, 3.0, 3.125, 3.25, 3.375, 3.5, 3.625]       # C E L E . E N U S (V lands on DROP)
+FLY_PAN = [(-0.95, -0.3), (-0.3, -0.2), (0, 0), (0.1, 0.0), (0.8, 0.15), (0, 0), (0.7, 0.25), (0.95, 0.4)]
+FROM_CAMERA = (2, 5)                                            # L and N zoom in from the front
+HEART = [(6.0, 1.0), (6.2, 0.7), (6.85, 1.0), (7.05, 0.7)]
+GLINTS = [4.5, 5.15, 5.6, 6.0, 6.85]
 
 
 def chord_at(t):
     if t < 2:
         return AM
-    if t < 4:
+    if t < 3:
         return F
-    if t < 6:
+    if t < 4:
         return G
-    if t < 8:
+    if t < 5:
         return AM
-    if t < 9:
+    if t < 5.5:
         return F
     return G
 
 
-# 16th-note arpeggio: soft in the intro, muted while the letters land, back on the drop
+# pads: quiet at the start, opening up as the logo builds
+place(pad(AM, 2.0, cutoff=700, att=1.0), 0.0, 0.4)
+place(pad(F, 1.0, cutoff=1300, att=0.2), 2.0, 0.45)
+place(pad(G, 0.95, cutoff=2400, att=0.2, rel=0.1), 3.0, 0.5)
+place(pad(AM, 1.0, cutoff=2600, att=0.03), 4.0, 0.55)
+place(pad(F, 0.5, cutoff=2600, att=0.03), 5.0, 0.55)
+place(pad(G, 0.5, cutoff=2600, att=0.03), 5.5, 0.55)
+place(pad(AM + (69,), 1.4, cutoff=1500, att=0.02, rel=1.0), GROOVE_END, 0.45, send=0.6)  # held chord under the heartbeat
+
+# 16th arp: whisper in the intro, rests while letters fly, full in the groove
 ARP = [0, 1, 2, 3, 2, 4, 3, 2]
-step = 0.125
-for k in range(int(1.0 / step), int(FINAL / step)):
-    t = k * step
-    if 3.5 <= t < DROP:
+for k in range(int(0.5 / 0.125), int(GROOVE_END / 0.125)):
+    t = k * 0.125
+    if 2.1 <= t < DROP:
         continue
     c = chord_at(t)
     tones = [c[0] + 12, c[1] + 12, c[2] + 12, c[0] + 24, c[1] + 24]
-    m = tones[ARP[k % 8]]
-    g = 0.10 + 0.12 * min(1, (t - 1.0) / 2.5) if t < DROP else 0.2
-    place(pluck(m, 0.35, bright=0.6 if t < DROP else 1.2), t, g, p=0.35 * np.sin(k * 0.9), send=0.3)
+    g = 0.05 + 0.07 * min(1, (t - 0.5) / 1.5) if t < DROP else 0.17
+    place(pluck(tones[ARP[k % 8]], 0.35, bright=0.6 if t < DROP else 1.2), t, g, p=0.4 * np.sin(k * 0.9), send=0.3)
 
-# chord stabs + bass in the groove
-for t, c in ((6.0, AM), (6.75, AM), (7.5, AM), (8.0, F), (8.75, F), (9.25, G), (9.5, G)):
+# groove bar: stabs, bass
+for t, c in ((4.0, AM), (4.75, AM), (5.0, F), (5.5, G), (5.75, G)):
     for m in c:
-        place(pluck(m + 12, 0.5, bright=1.4, decay=4), t, 0.16, p=0.0, send=0.35)
-for k in range(int(DROP / 0.25), int(FINAL / 0.25)):
+        place(pluck(m + 12, 0.5, bright=1.4, decay=4), t, 0.14, send=0.35)
+for k in range(int(DROP / 0.25), int(GROOVE_END / 0.25)):
     t = k * 0.25
-    root = chord_at(t)[0] - 12
-    place(bass(root + (12 if k % 4 == 3 else 0), 0.24), t, 0.55)
-place(bass(45, 1.8), FINAL, 0.7)
+    place(bass(chord_at(t)[0] - 12 + (12 if k % 4 == 3 else 0), 0.24), t, 0.5)
 
 # drums
-for t in (2.0, 2.5, 3.0):
-    place(kick(0.7), t, 0.45, bus='drums')
-for k in range(8):
-    place(hat(), 2.0 + k * 0.25, 0.10, p=0.3, bus='drums')
-for k in range(int(4.0 / 0.125), int(5.875 / 0.125)):
-    place(hat(), k * 0.125, 0.07 + 0.06 * (k * 0.125 - 4) / 2, p=0.3, bus='drums')
-for t in (4.0, 5.0):
-    place(kick(0.8), t, 0.5, bus='drums')
-# snare roll into the drop
-roll = [5.0, 5.25, 5.5, 5.625, 5.75, 5.8125, 5.875]
-for i, t in enumerate(roll):
-    place(snare(), t, 0.15 + 0.06 * i, p=0.1, bus='drums', send=0.25)
-# groove
-for k in range(8):
+for t in (1.0, 1.5):
+    place(kick(0.6), t, 0.3, bus='drums')
+for k in range(4):
+    place(hat(), 1.0 + k * 0.25, 0.06, p=0.3, bus='drums')
+place(kick(0.8), 2.0, 0.4, bus='drums')
+for k in range(int(2.0 / 0.125), int(3.875 / 0.125)):
+    t = k * 0.125
+    place(hat(), t, 0.05 + 0.05 * (t - 2.0) / 1.9, p=0.3, bus='drums')
+for i, t in enumerate((3.5, 3.625, 3.75, 3.8125, 3.875, 3.90625, 3.9375)):
+    place(snare(), t, 0.1 + 0.05 * i, p=0.1, bus='drums', send=0.25)
+for k in range(4):
     t = DROP + k * 0.5
-    place(kick(1.0), t, 0.8, bus='drums')
-    place(hat(True), t + 0.25, 0.16, p=-0.25, bus='drums')
+    place(kick(1.0), t, 0.75, bus='drums')
+    place(hat(True), t + 0.25, 0.13, p=-0.25, bus='drums')
     if k % 2 == 1:
-        place(clap(), t, 0.42, bus='drums', send=0.3)
-for k in range(int(DROP / 0.125), int(FINAL / 0.125)):
+        place(clap(), t, 0.38, bus='drums', send=0.3)
+for k in range(int(DROP / 0.125), int(GROOVE_END / 0.125)):
     if k % 2:
-        place(hat(), k * 0.125, 0.09, p=0.35, bus='drums')
-for t in (9.625, 9.75, 9.875):
-    place(snare(), t, 0.25, bus='drums', send=0.25)
+        place(hat(), k * 0.125, 0.08, p=0.35, bus='drums')
+for t in (5.625, 5.75, 5.875):
+    place(snare(), t, 0.22, bus='drums', send=0.25)
 
 # ---------------- SFX ----------------
-place(whoosh(2.2, 200, 4500, peak=0.45), 0.5, 0.35, p=-0.4, bus='sfx', send=0.4)
-place(whoosh(1.4, 600, 7000, peak=0.6, q=2.0), 1.3, 0.22, p=0.5, bus='sfx', send=0.4)
-place(riser(2.4, 300, 6000), 0.6, 0.18, bus='sfx', send=0.3)
-# swirl solidifies: shimmer chime
+place(whoosh(1.5, 200, 4500, peak=0.45), 0.2, 0.28, p=-0.4, bus='sfx', send=0.4)
+place(whoosh(1.0, 600, 7000, peak=0.6, q=2.0), 0.75, 0.18, p=0.5, bus='sfx', send=0.4)
+place(riser(1.75, 300, 6000), 0.25, 0.14, bus='sfx', send=0.3)
+# swirl solidifies
 for i, m in enumerate((81, 88, 93, 96)):
-    place(bell(m, 3.0, 1.6), 3.0 + i * 0.045, 0.13, p=-0.5 + i * 0.33, bus='sfx', send=0.6)
-place(impact(0.3), 3.0, 0.25, bus='sfx', send=0.3)
-# letters land: thud + rising notes (A minor pentatonic)
+    place(bell(m, 2.5, 1.8), 2.0 + i * 0.04, 0.11, p=-0.5 + i * 0.33, bus='sfx', send=0.6)
+place(impact(0.3), 2.0, 0.2, bus='sfx', send=0.3)
+# letters fly in from all sides: whoosh travels with each letter, tick + rising note on arrival
 notes = [69, 72, 74, 76, 79, 81, 84, 86]
 for i, t in enumerate(LAND):
-    pan = -0.6 + i * 0.17
-    place(whoosh(0.3, 1500, 6000, peak=0.8, q=2.5), t - 0.3, 0.07, p=pan, bus='sfx')
-    place(thud(), t, 0.55, p=pan * 0.5, bus='sfx')
-    place(pluck(notes[i], 0.6, bright=1.5, decay=3.5), t, 0.26, p=pan, bus='sfx', send=0.4)
+    p0, p1 = FLY_PAN[i]
+    if i in FROM_CAMERA:
+        w = svf(noise(int(SR * FLIGHT)), 300 * (20 ** np.linspace(0, 1, int(SR * FLIGHT))), 2.0) * np.linspace(0, 1, int(SR * FLIGHT)) ** 2
+    else:
+        w = whoosh(FLIGHT, 900, 6500, peak=0.85, q=2.2)
+    BUS['sfx'][int((t - FLIGHT) * SR):int((t - FLIGHT) * SR) + len(w)] += pan_sweep(w, p0, p1) * 0.12
+    place(thud(), t, 0.42, p=p1 * 0.6, bus='sfx')
+    place(pluck(notes[i], 0.6, bright=1.5, decay=3.5), t, 0.22, p=p1, bus='sfx', send=0.4)
 # build into the drop
-place(riser(1.5, 400, 11000), 4.4, 0.3, bus='sfx', send=0.2)
-place(reverse_cymbal(1.5), 4.5, 0.4, bus='sfx')
-place(whoosh(0.45, 300, 3000, peak=0.9, q=1.2), 5.55, 0.45, bus='sfx')  # the V falling
+place(riser(1.1, 400, 11000), 2.9, 0.24, bus='sfx', send=0.2)
+place(reverse_cymbal(1.0), 3.0, 0.3, bus='sfx')
+place(whoosh(0.42, 300, 3000, peak=0.9, q=1.2), 3.58, 0.38, bus='sfx')   # the V falling
 # DROP: the V slams down
-place(impact(1.0), DROP, 0.95, bus='sfx', send=0.45)
-place(crash(), DROP, 0.5, p=0.15, bus='sfx', send=0.4)
+place(impact(1.0), DROP, 0.9, bus='sfx', send=0.45)
+place(crash(2.0), DROP, 0.42, p=0.15, bus='sfx', send=0.4)
 for m in (45, 57, 64, 69):
-    place(bell(m, 2.5, 1.0), DROP, 0.07, bus='sfx', send=0.4)
-# light sweep: sparkle glissando
+    place(bell(m, 2.0, 1.0), DROP, 0.06, bus='sfx', send=0.4)
+# light sweep sparkle + glints
 for i, m in enumerate((81, 84, 86, 88, 91, 93, 96, 98, 100, 103)):
-    place(bell(m, 1.2, 4.0), 6.28 + i * 0.07, 0.05, p=-0.8 + i * 0.18, bus='sfx', send=0.6)
-# glints
+    place(bell(m, 1.0, 4.0), 4.18 + i * 0.06, 0.04, p=-0.8 + i * 0.18, bus='sfx', send=0.6)
 for i, t in enumerate(GLINTS):
-    place(bell(100 if i % 2 else 105, 1.5, 3.0), t + 0.1, 0.06, p=(-0.5 if i % 2 else 0.5), bus='sfx', send=0.7)
-# final hit
-place(kick(1.0), FINAL, 0.8, bus='drums')
-place(impact(0.6), FINAL, 0.6, bus='sfx', send=0.5)
-place(crash(3.0), FINAL, 0.45, p=-0.15, bus='sfx', send=0.5)
-for m in (69, 76, 81, 88):
-    place(bell(m, 3.0, 0.9), FINAL, 0.07, bus='sfx', send=0.6)
-place(whoosh(1.2, 400, 6000, peak=0.5), 9.55, 0.2, p=0.5, bus='sfx', send=0.3)
+    place(bell(100 if i % 2 else 105, 1.2, 3.0), t + 0.08, 0.05, p=(-0.5 if i % 2 else 0.5), bus='sfx', send=0.7)
+# ending: groove cuts, the logo beats like a heart
+for t, a in HEART:
+    place(heartbeat(a), t, 0.9, bus='drums', send=0.15)
+place(bell(81, 2.0, 1.2), GROOVE_END, 0.06, bus='sfx', send=0.7)
 
 # ---------------- mix ----------------
+MASTER_DB = -1.5   # final trim so the sting sits around -16 LUFS (not too loud)
 # sidechain the music bus to the groove kicks
 sc = np.ones(N)
-for t in [DROP + k * 0.5 for k in range(8)] + [FINAL]:
+for t in [DROP + k * 0.5 for k in range(4)] + [h[0] for h in HEART]:
     i = int(t * SR)
     n = min(N - i, int(SR * 0.45))
     sc[i:i + n] *= 1 - 0.55 * np.exp(-T(n) * 9)
@@ -332,12 +342,13 @@ verb = np.stack([fftconvolve(BUS['verb'][:, c], ir[:, c])[:N] for c in range(2)]
 mix = BUS['drums'] + music + BUS['sfx'] + verb
 mix = filt(mix, 'highpass', 25)
 mix /= np.abs(mix).max()
-drive = 1.8
+drive = 1.15
 mix = np.tanh(mix * drive) / np.tanh(drive)          # gentle saturation / limiting
 fade_in = np.minimum(1, T(N) / 0.02)
-fade_out = np.clip((DUR - T(N)) / 0.65, 0, 1) ** 1.5
+fade_out = np.clip((DUR - T(N)) / 0.6, 0, 1) ** 1.5
 mix *= (fade_in * fade_out)[:, None]
-mix *= 10 ** (-1 / 20) / np.abs(mix).max()
+mix *= 10 ** (-1.5 / 20) / np.abs(mix).max()
+mix *= 10 ** (MASTER_DB / 20)
 
 out = sys.argv[1] if len(sys.argv) > 1 else 'soundtrack.wav'
 with wave.open(out, 'wb') as w:
