@@ -13,12 +13,12 @@ The earlier 12-second cut (16:9 and 9:16) is kept as `v1_12s_*.mp4`.
 | 0.0 – 0.5 s | Fade up from black, gold bokeh | Soft pad, riser starts |
 | 0.25 – 1.6 s | Glowing gold pens trace the calligraphy C | Whooshes, whisper-quiet arpeggio |
 | 2.0 s | Swirl turns solid with a gold bloom | Shimmer chime |
-| 2.2 – 3.6 s | Letters fly in from every side (L and N zoom in from the camera) and converge into the word | Each letter's whoosh travels across the stereo field, with a tick and a rising note on arrival |
-| 3.5 – 4.0 s | The V drops from above | Snare roll, riser, reverse cymbal |
-| 4.0 s | The V slams into place: flash, shockwave, shake | Impact and crash, one bar of groove |
-| 4.15 – 6 s | Light sweep, rays, beat pulses | Groove with sparkles |
-| 6.0 – 7.3 s | The logo beats like a heart, lub-dub twice, with rose ripples | Music drops out to a held chord and heartbeat thumps |
-| 7.4 – 8.0 s | Fade to black | Fade out |
+| 2.1 – 3.5 s | C·E·L·E·_·E·N·U·S glide down one by one, left to right, and settle softly into place | A rising celesta melody, one note per letter |
+| 3.5 – 4.0 s | The V drops from above into the gap | Snare roll, riser, reverse cymbal |
+| 4.0 s | The V lands in the middle: soft flash, gold shockwave | Impact and crash, one bar of light groove |
+| 4.15 – 6 s | Light sweep, rays, gentle beat pulse | Groove with sparkles |
+| 6.0 – 7.3 s | A final light sweep and glints, the rays settle | The music resolves into a rolled Am(add9) bell chord over a warm pad, with a long tail |
+| 7.35 – 8.0 s | Fade to black | Fade out |
 
 All music and sound effects are synthesized from scratch in `make_audio.py`, so there are no third-party licences to worry about.
 
