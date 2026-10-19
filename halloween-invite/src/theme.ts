@@ -29,10 +29,10 @@ export const EVENT = {
 	day: 'FRIDAY',
 	date: '30',
 	month: 'OCTOBER 2026',
-	time: '3:00 PM – 6:00 PM',
-	shortWhen: 'Fri, 30 Oct  •  3 – 6 PM',
+	time: '2:00 PM – 6:00 PM',
+	shortWhen: 'Fri, 30 Oct  •  2 – 6 PM',
 	addressLine1: '391B Orchard Road, Ngee Ann City Tower B',
 	addressLine2: '#16-03/04, Singapore 238874',
 	rsvpTitle: 'RSVP is a must!',
-	rsvpLine: 'Reply to this message to confirm your spot',
+	rsvpLine: 'Reply to book your spot & free skin analysis',
 };

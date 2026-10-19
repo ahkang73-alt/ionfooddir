@@ -303,3 +303,16 @@ export const Sparkle: React.FC<{size: number; color?: string; style?: React.CSSP
 		<path d="M20 0 Q 22 18 40 20 Q 22 22 20 40 Q 18 22 0 20 Q 18 18 20 0 Z" fill={color} />
 	</svg>
 );
+
+export const CrownIcon: React.FC<{size: number}> = ({size}) => (
+	<svg viewBox="0 0 100 100" width={size} height={size}>
+		<path d="M12 74 L 8 30 L 30 50 L 50 18 L 70 50 L 92 30 L 88 74 Z" fill={C.orange} stroke={C.ink} strokeWidth="4" strokeLinejoin="round" />
+		<rect x="12" y="72" width="76" height="14" rx="4" fill={C.orangeDeep} stroke={C.ink} strokeWidth="4" />
+		<circle cx="8" cy="28" r="6" fill={C.white} stroke={C.ink} strokeWidth="3" />
+		<circle cx="50" cy="15" r="7" fill={C.white} stroke={C.ink} strokeWidth="3" />
+		<circle cx="92" cy="28" r="6" fill={C.white} stroke={C.ink} strokeWidth="3" />
+		<circle cx="50" cy="56" r="7" fill={C.white} stroke={C.ink} strokeWidth="3" />
+		<circle cx="30" cy="62" r="4" fill={C.ink} />
+		<circle cx="70" cy="62" r="4" fill={C.ink} />
+	</svg>
+);

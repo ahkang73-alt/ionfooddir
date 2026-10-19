@@ -5,18 +5,19 @@
 export const VOICE_FILE = 'audio/dr-dylan-voiceover.wav';
 
 export const VOICE_LINES = [
-	{text: 'Hi, I’m Dr Dylan from CeleVenus.', srcStart: 0, srcEnd: 2.55, at: 0.9},
-	{text: 'You’re invited to our Halloween party.', srcStart: 2.55, srcEnd: 4.6, at: 5.5},
-	{text: 'Join us on Friday, the 30th of October, from 3 to 6 p.m.', srcStart: 4.6, srcEnd: 9.09, at: 10.9},
+	{text: 'Hi, I’m Dr Dylan from CeleVenus.', srcStart: 0, srcEnd: 2.47, at: 0.9},
+	{text: 'You’re invited to our Halloween party.', srcStart: 2.47, srcEnd: 4.44, at: 5.5},
+	{text: 'Join us on Friday, the 30th of October, from 2 to 6 p.m.', srcStart: 4.44, srcEnd: 8.87, at: 10.9},
 	{
-		text: 'There’ll be exciting prizes to be won, some special treats for you, and finger food for everyone.',
-		srcStart: 9.09,
-		srcEnd: 14.78,
-		at: 17.4,
+		text: 'Enjoy a free skin analysis. If your skin scores a Crown, you’ll win a prize from SkinCeuticals.',
+		srcStart: 8.87,
+		srcEnd: 14.97,
+		at: 17.2,
 	},
-	{text: 'No tricks, just treats. Come in, relax, and have a nice time with us.', srcStart: 14.78, srcEnd: 19.89, at: 27.6},
-	{text: 'Do remember to RSVP, so we can save a spot for you.', srcStart: 19.89, srcEnd: 24.09, at: 32.95},
-	{text: 'See you there… if you dare.', srcStart: 24.09, srcEnd: 26.26, at: 37.15},
+	{text: 'There’ll also be special treats, and finger food for everyone.', srcStart: 14.97, srcEnd: 18.46, at: 23.3},
+	{text: 'No tricks, just treats. Come in, relax, and have a nice time with us.', srcStart: 18.46, srcEnd: 23.71, at: 27.9},
+	{text: 'Slots are limited, so do RSVP to book yours.', srcStart: 23.71, srcEnd: 27.74, at: 33.25},
+	{text: 'See you there… if you dare.', srcStart: 27.74, srcEnd: 29.96, at: 37.3},
 ];
 
 /** 1 while Dr Dylan is talking (with short ramps either side), else 0. */
