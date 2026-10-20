@@ -437,6 +437,116 @@ def sfx_tada():
     return reverb(out, 1.8, 0.3)
 
 
+
+# ----------------------------------------------------------------- version 2 sound effects
+
+def sfx_scan():
+    """Skin-analysis scanner: soft rising sweep with digital beeps."""
+    dur = 1.6
+    t = t_axis(dur)
+    f = 600 + 1400 * (t / dur) ** 1.5
+    sweep = np.sin(2 * np.pi * np.cumsum(f) / SR) * 0.25 * np.sin(np.pi * t / dur)
+    out = sweep.copy()
+    for k, (s, freq) in enumerate(((0.15, 1760), (0.45, 1760), (0.75, 2093), (1.1, 2637))):
+        tt = t_axis(0.09 if k < 3 else 0.25)
+        b = np.sign(np.sin(2 * np.pi * freq * tt)) * 0.18 + np.sin(2 * np.pi * freq * tt) * 0.5
+        b *= np.exp(-tt / (0.05 if k < 3 else 0.12))
+        i = int(s * SR)
+        out[i : i + len(b)] += b
+    return reverb(lowpass(out, 9000), 0.8, 0.2)
+
+
+def sfx_crown():
+    """Royal mini-fanfare for the Crown prize."""
+    dur = 2.4
+    n = int(dur * SR)
+    out = np.zeros(n)
+    for start, m, d in ((0.0, 67, 0.16), (0.16, 72, 0.16), (0.32, 76, 0.16), (0.48, 79, 1.2)):
+        tt = t_axis(d + 0.4)
+        f = mtof(m)
+        brass = sum(np.sin(2 * np.pi * f * h * tt) / h ** 1.2 for h in range(1, 7))
+        env = np.clip(tt / 0.02, 0, 1) * np.exp(-np.clip(tt - d, 0, None) / 0.12)
+        x = lowpass(brass * env, 3500)
+        i = int(start * SR)
+        L = min(len(x), n - i)
+        out[i : i + L] += x[:L] * 0.5
+    sp = sfx_sparkle().mean(axis=1)
+    i = int(0.5 * SR)
+    L = min(len(sp), n - i)
+    out[i : i + L] += sp[:L] * 0.6
+    return reverb(out, 1.5, 0.3)
+
+
+def sfx_kaching():
+    """Cash-register ka-ching with a little coin jingle."""
+    dur = 1.6
+    n = int(dur * SR)
+    out = np.zeros(n)
+    clack = bandpass(rng.standard_normal(int(0.05 * SR)), 1500, 5000) * env_ad(int(0.05 * SR), 0.001, 0.01)
+    out[: len(clack)] += clack * 0.8
+    tt = t_axis(1.4)
+    bell = sum(a * np.sin(2 * np.pi * f * tt) * np.exp(-tt / d) for f, a, d in ((2637, 1, 0.5), (3520, 0.6, 0.35), (5274, 0.3, 0.2)))
+    i = int(0.08 * SR)
+    out[i : i + len(bell)] += bell[: n - i]
+    for k in range(7):
+        s = 0.15 + k * 0.07 + rng.uniform(0, 0.03)
+        ct = t_axis(0.12)
+        f = rng.uniform(4000, 7000)
+        c = np.sin(2 * np.pi * f * ct) * np.exp(-ct / 0.03) * 0.25
+        j = int(s * SR)
+        out[j : j + len(c)] += c
+    return reverb(out, 0.9, 0.2)
+
+
+def sfx_munch():
+    """Crunchy munch-munch for the finger food."""
+    dur = 1.2
+    n = int(dur * SR)
+    out = np.zeros(n)
+    for s in (0.0, 0.32, 0.62):
+        L = int(0.16 * SR)
+        x = bandpass(rng.standard_normal(L), 900, 4500)
+        crackle = (rng.random(L) > 0.97) * rng.standard_normal(L) * 2.5
+        e = env_ad(L, 0.004, 0.05)
+        thump = np.sin(2 * np.pi * 110 * t_axis(0.16)) * np.exp(-t_axis(0.16) / 0.04) * 0.6
+        i = int(s * SR)
+        out[i : i + L] += (x + bandpass(crackle, 1500, 7000)) * e + thump
+    return out
+
+
+def sfx_thunder():
+    dur = 4.0
+    t = t_axis(dur)
+    crack = bandpass(rng.standard_normal(len(t)), 300, 5000) * np.exp(-t / 0.08)
+    rumble = lowpass(rng.standard_normal(len(t)), 120) * 4 * np.exp(-((t - 0.6) / 1.1) ** 2) * (1 + 0.4 * np.sin(2 * np.pi * 3 * t))
+    return reverb(crack * 0.8 + rumble, 2.2, 0.35)
+
+
+def sfx_drip():
+    """Single thick drip (blood)."""
+    t = t_axis(0.5)
+    f = 500 + 1600 * (1 - np.exp(-t / 0.03))
+    x = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.06)
+    return reverb(x, 0.6, 0.3)
+
+
+def sfx_stone():
+    """Stone tombstone grinding up out of the ground."""
+    dur = 1.8
+    t = t_axis(dur)
+    grind = bandpass(rng.standard_normal(len(t)), 80, 900) * (0.6 + 0.4 * np.sin(2 * np.pi * 11 * t) ** 2)
+    e = np.clip(t / 0.15, 0, 1) * np.clip((dur - t) / 0.4, 0, 1)
+    thud = np.sin(2 * np.pi * 55 * t) * np.exp(-np.clip(t - 1.4, 0, None) / 0.12) * (t > 1.4)
+    return reverb(grind * e * 0.8 + thud, 1.0, 0.2)
+
+
+def sfx_stamp():
+    """Heavy RSVP stamp slam."""
+    t = t_axis(0.8)
+    body = np.sin(2 * np.pi * np.cumsum(60 + 120 * np.exp(-t / 0.02)) / SR) * np.exp(-t / 0.15)
+    slap = bandpass(rng.standard_normal(len(t)), 800, 6000) * np.exp(-t / 0.02)
+    return reverb(body + slap * 0.6, 0.9, 0.2)
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     save("music.wav", build_music(), 0.9)
@@ -450,4 +560,13 @@ if __name__ == "__main__":
     save("bubbles.wav", sfx_bubbles())
     save("wind.wav", sfx_wind())
     save("tada.wav", sfx_tada())
+    # version 2 effects (generated after the originals so those stay identical)
+    save("scan.wav", sfx_scan())
+    save("crown.wav", sfx_crown())
+    save("kaching.wav", sfx_kaching())
+    save("munch.wav", sfx_munch())
+    save("thunder.wav", sfx_thunder())
+    save("drip.wav", sfx_drip())
+    save("stone.wav", sfx_stone())
+    save("stamp.wav", sfx_stamp())
     print("audio written to", os.path.abspath(OUT))

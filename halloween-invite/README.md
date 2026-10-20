@@ -1,6 +1,7 @@
 # CeleVenus Halloween Party Invite 🎃
 
-**▶ Final video: [`video/celevenus-halloween-invite.mp4`](video/celevenus-halloween-invite.mp4)**
+**▶ Version 1: [`video/celevenus-halloween-invite.mp4`](video/celevenus-halloween-invite.mp4)**
+**▶ Version 2: [`video/celevenus-halloween-invite-v2.mp4`](video/celevenus-halloween-invite-v2.mp4)** (see below)
 
 A 40-second animated invitation (1080×1920, vertical, for WhatsApp/Instagram) built with [Remotion](https://www.remotion.dev).
 
@@ -41,6 +42,18 @@ The background music and all sound effects are synthesised from scratch by `scri
 - Overall pace: `SPEED` in `src/time.ts` (scene timings are written on a 45 s scale and played back at 45/40 speed).
 - Characters (pumpkins, witch, ghosts, bats, spider, cauldron, icons): `src/elements/Characters.tsx`.
 
+## Version 2 (`HalloweenInviteV2`, `src/v2/`)
+
+A second 40 s take in a darker moonlit-graveyard style (orange / black / white with a touch of blood red), in five scenes, with the same Dr Dylan voiceover re-timed:
+
+| Time | Scene | Sound |
+| --- | --- | --- |
+| 0–4.4 s | Lightning, full moon rises, the witch circles the moon, CeleVenus logo | thunder, whoosh, chime |
+| 4.4–14.6 s | "You're invited to our HALLOWEEN PARTY" with blood drips; a tombstone rises engraved with Fri 30 Oct, 12–7 PM, RSVP required | drips, stone grind |
+| 14.6–27.3 s | "What's brewing?" – each treat gets its own spotlight and sound: FREE skin analysis, Score a Crown (SkinCeuticals prize), special offers, finger food | scanner beep, royal fanfare, ka-ching, munch |
+| 27.3–36.2 s | "No tricks, just treats!", then "Slots are limited" and a blood-red RSVP stamp | bats, stamp |
+| 36.2–40 s | Logo, date, address, RSVP reminder, "See you there… if you dare" | chime, whoosh, ta-da |
+
 ## Commands
 
 ```bash
@@ -48,6 +61,7 @@ npm install
 npm run audio    # regenerate public/audio/*.wav (needs python3 + numpy)
 npm run studio   # live preview in the browser
 npm run render   # writes out/celevenus-halloween-invite.mp4
+npm run render:v2  # writes out/celevenus-halloween-invite-v2.mp4
 ```
 
 To render with an existing Chrome headless shell, set `REMOTION_BROWSER=/path/to/headless_shell`.
