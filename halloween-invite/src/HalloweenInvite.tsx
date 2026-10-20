@@ -91,10 +91,10 @@ const cuteText = (size: number, color = C.white, weight = 600): React.CSSPropert
 
 // ------------------------------------------------------------------ audio
 const SFX: Array<{at: number; src: string; volume: number}> = [
-	{at: 0, src: 'wind.wav', volume: 0.45},
-	{at: 50, src: 'whoosh.wav', volume: 0.6},
-	{at: 85, src: 'sparkle.wav', volume: 0.45},
-	{at: 110, src: 'chime.wav', volume: 0.55},
+	{at: 0, src: 'wind.wav', volume: 0.25},
+	{at: 50, src: 'whoosh.wav', volume: 0.4},
+	{at: 85, src: 'sparkle.wav', volume: 0.3},
+	{at: 110, src: 'chime.wav', volume: 0.4},
 	{at: 194, src: 'whoosh.wav', volume: 0.3},
 	{at: 248, src: 'sparkle.wav', volume: 0.5},
 	{at: 282, src: 'pop.wav', volume: 0.6},
@@ -121,14 +121,18 @@ const Soundtrack: React.FC = () => (
 		<Html5Audio
 			src={staticFile('audio/music.wav')}
 			volume={(f) =>
-				interpolate(f, [0, 20, DURATION - 30, DURATION], [0, 0.25, 0.25, 0.22], clamp) * (1 - 0.72 * voiceActivity(f, FPS))
+				interpolate(f, [0, 20, DURATION - 30, DURATION], [0, 0.18, 0.18, 0.16], clamp) * (1 - 0.8 * voiceActivity(f, FPS))
 			}
 		/>
-		{SFX.map((s) => (
-			<Sequence key={`${s.src}-${s.at}`} from={Math.round(s.at / SPEED)} durationInFrames={150} layout="none">
-				<Html5Audio src={staticFile(`audio/${s.src}`)} volume={s.volume * (1 - 0.65 * voiceActivity(s.at / SPEED, FPS))} />
-			</Sequence>
-		))}
+		{SFX.map((s) => {
+			const from = Math.round(s.at / SPEED);
+			return (
+				<Sequence key={`${s.src}-${s.at}`} from={from} durationInFrames={180} layout="none">
+					{/* effects dip for as long as they overlap Dr Dylan's voice, not just at their start */}
+					<Html5Audio src={staticFile(`audio/${s.src}`)} volume={(f) => s.volume * (1 - 0.75 * voiceActivity(from + f, FPS))} />
+				</Sequence>
+			);
+		})}
 		{VOICE_LINES.map((l) => {
 			const dur = Math.round((l.srcEnd - l.srcStart) * FPS);
 			return (
