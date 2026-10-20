@@ -134,7 +134,7 @@ const Soundtrack: React.FC = () => (
 			return (
 				<Sequence key={l.at} from={Math.round(l.at * FPS)} durationInFrames={dur} layout="none">
 					<Html5Audio
-						src={staticFile(VOICE_FILE)}
+						src={staticFile(l.file ?? VOICE_FILE)}
 						trimBefore={Math.round(l.srcStart * FPS)}
 						volume={(f) => interpolate(f, [0, 2, dur - 3, dur], [0, 1, 1, 0], clamp)}
 					/>
@@ -396,7 +396,7 @@ const ITEMS = [
 		top: 760,
 		height: 250,
 	},
-	{at: 790, Icon: TagIcon, title: 'Special offers on procedures', sub: 'Party hours only  •  2 – 6 PM', top: 1030, height: 180},
+	{at: 790, Icon: TagIcon, title: 'Special offers on procedures', sub: 'Party hours only  •  12 – 7 PM', top: 1030, height: 180},
 	{at: 835, Icon: CupcakeIcon, title: 'Finger food served', sub: 'Treat yourself & mingle with us', top: 1230, height: 180},
 ];
 

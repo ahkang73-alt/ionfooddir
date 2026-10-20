@@ -4,10 +4,17 @@
 // dr-dylan-voiceover.wav, `at` is where the sentence starts in the video (seconds).
 export const VOICE_FILE = 'audio/dr-dylan-voiceover.wav';
 
-export const VOICE_LINES = [
+export const VOICE_LINES: Array<{text: string; srcStart: number; srcEnd: number; at: number; file?: string}> = [
 	{text: 'Hi, I’m Dr Dylan from CeleVenus.', srcStart: 0, srcEnd: 2.47, at: 0.9},
 	{text: 'You’re invited to our Halloween party.', srcStart: 2.47, srcEnd: 4.44, at: 5.5},
-	{text: 'Join us on Friday, the 30th of October, from 2 to 6 p.m.', srcStart: 4.44, srcEnd: 8.87, at: 10.9},
+	// re-recorded on its own when the party time changed to 12–7 PM
+	{
+		text: 'Join us on Friday, the 30th of October, from 12 to 7 p.m.',
+		file: 'audio/dr-dylan-time-line.wav',
+		srcStart: 0,
+		srcEnd: 4.04,
+		at: 10.9,
+	},
 	{
 		text: 'Enjoy a free skin analysis. If your skin scores a Crown, you’ll win a prize from SkinCeuticals.',
 		srcStart: 8.87,

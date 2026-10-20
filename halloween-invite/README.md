@@ -4,7 +4,7 @@
 
 A 40-second animated invitation (1080×1920, vertical, for WhatsApp/Instagram) built with [Remotion](https://www.remotion.dev).
 
-**Event:** Friday, 30 October 2026, 2:00 PM – 6:00 PM at CeleVenus Wellness & Aesthetic Clinic, 391B Orchard Road, Ngee Ann City Tower B, #16-03/04.
+**Event:** Friday, 30 October 2026, 12:00 PM – 7:00 PM at CeleVenus Wellness & Aesthetic Clinic, 391B Orchard Road, Ngee Ann City Tower B, #16-03/04.
 
 ## Storyboard
 
@@ -12,7 +12,7 @@ A 40-second animated invitation (1080×1920, vertical, for WhatsApp/Instagram) b
 | --- | --- | --- |
 | 0–5.3 s | Moonlit night, a cute witch flies past, CeleVenus logo reveal | wind, whoosh, sparkle, chime |
 | 5.3–10.7 s | "You're invited to our HALLOWEEN PARTY", pumpkins pop up | whoosh, sparkle, pops |
-| 10.7–16.4 s | Save the date: Friday 30 Oct, 2–6 PM, "RSVP required", a ghost peeks out | dings, boing |
+| 10.7–16.4 s | Save the date: Friday 30 Oct, 12–7 PM, "RSVP required", a ghost peeks out | dings, boing |
 | 16.4–27.6 s | What's brewing? FREE skin analysis (score a Crown, win a SkinCeuticals prize), special offers on procedures, finger food | bubbles, dings, sparkle |
 | 27.6–32.9 s | "No tricks, just treats!", come in, relax & enjoy | bats, boing |
 | 32.9–40 s | Logo, date, address, "RSVP is a must!" card, "See you there!" (lands on the music's final hit at ~37.3 s) | chime, whoosh, ding, ta-da |
@@ -25,7 +25,7 @@ Dr Dylan's voiceover was generated with ElevenLabs (the workspace's "Dr dylan" v
 | --- | --- |
 | 0.9 s | Hi, I'm Dr Dylan from CeleVenus. |
 | 5.5 s | You're invited to our Halloween party. |
-| 10.9 s | Join us on Friday, the 30th of October, from 2 to 6 p.m. |
+| 10.9 s | Join us on Friday, the 30th of October, from 12 to 7 p.m. |
 | 17.2 s | Enjoy a free skin analysis. If your skin scores a Crown, you'll win a prize from SkinCeuticals. |
 | 23.3 s | There'll also be special treats, and finger food for everyone. |
 | 27.9 s | No tricks, just treats. Come in, relax, and have a nice time with us. |
