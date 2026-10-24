@@ -1,0 +1,814 @@
+<title>Aesthetic Consult Simulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: consult-room tool. Photo stage on the left (top on phones), treatment panel on the right. */
+:root {
+  --bg: #eef1f2;
+  --surface: #ffffff;
+  --stage: #e2e7e9;
+  --ink: #161a1d;
+  --muted: #5b666d;
+  --line: #d5dce0;
+  --accent: #8a3a5a;
+  --accent-ink: #ffffff;
+  --accent-soft: #f4e5eb;
+  --ok: #2f7a5b;
+  --warn: #9a6512;
+  --font-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1214; --surface: #171b1e; --stage: #0a0c0d; --ink: #e8ecee; --muted: #96a1a8;
+    --line: #283035; --accent: #e28cad; --accent-ink: #1b0d14; --accent-soft: #35202b;
+    --ok: #6cc59d; --warn: #e2b05a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1214; --surface: #171b1e; --stage: #0a0c0d; --ink: #e8ecee; --muted: #96a1a8;
+  --line: #283035; --accent: #e28cad; --accent-ink: #1b0d14; --accent-soft: #35202b;
+  --ok: #6cc59d; --warn: #e2b05a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 18px 28px;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 20px; max-width: 1280px; margin: 0 auto 16px; }
+.brand h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(26px, 4vw, 36px); line-height: 1.05; margin: 0; letter-spacing: .005em; text-wrap: balance; }
+.brand p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 16px; font-weight: 500; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn svg { width: 16px; height: 16px; flex: none; }
+
+.layout { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+@media (max-width: 880px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+.stage-wrap { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.stage { background: var(--stage); border-radius: var(--radius); min-height: 340px; display: grid; place-items: center; padding: 12px; position: relative; overflow: hidden; }
+.frame { position: relative; display: inline-block; line-height: 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+.frame canvas { display: block; max-width: 100%; max-height: min(74vh, 900px); width: auto; height: auto; border-radius: 6px; }
+.frame svg.overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.tag { position: absolute; top: 10px; font: 500 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; padding: 6px 8px; border-radius: 4px; background: rgba(12, 14, 16, .62); color: #fff; pointer-events: none; }
+.tag.left { left: 10px; } .tag.right { right: 10px; }
+
+.empty { text-align: center; max-width: 440px; padding: 28px 12px; display: grid; justify-items: center; gap: 12px; }
+.empty svg.face { width: 150px; height: 150px; color: var(--muted); }
+.empty h2 { font-family: var(--font-display); font-weight: 600; font-size: 28px; margin: 0; line-height: 1.1; }
+.empty p { margin: 0; color: var(--muted); }
+.stage.drag { outline: 2px dashed var(--accent); outline-offset: -8px; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: 3px; }
+.seg button { border: 0; background: transparent; border-radius: 999px; padding: 6px 14px; font-size: 14px; font-weight: 500; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.status { font-size: 13px; color: var(--muted); min-height: 20px; display: flex; align-items: center; gap: 8px; }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.status.ok .dot { background: var(--ok); } .status.warn .dot { background: var(--warn); }
+.status.busy .dot { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 0; min-width: 0; }
+.panel h2 { font: 600 12px/1 var(--font-body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 14px 18px 6px; }
+.tx { padding: 12px 18px 14px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.tx:first-of-type { border-top: 0; }
+.tx-head { display: flex; align-items: center; gap: 12px; }
+.tx-name { flex: 1; min-width: 0; }
+.tx-name b { display: block; font-weight: 600; font-size: 15px; }
+.tx-name span { display: block; color: var(--muted); font-size: 12.5px; }
+.switch { flex: none; width: 74px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); padding: 7px 0; font-size: 13px; font-weight: 600; letter-spacing: .02em; }
+.switch[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tx-slider { display: flex; align-items: center; gap: 10px; }
+.tx-slider input { flex: 1; min-width: 0; accent-color: var(--accent); }
+.tx-val { font: 500 12px/1 var(--font-mono); color: var(--muted); width: 108px; white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+.tx.off .tx-slider { opacity: .45; }
+.panel-foot { border-top: 1px solid var(--line); padding: 14px 18px 10px; display: grid; gap: 10px; }
+.panel-foot .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.note { font-size: 12.5px; color: var(--muted); margin: 0; }
+.panel[aria-disabled="true"] .tx { opacity: .5; pointer-events: none; }
+
+.sheet { position: fixed; inset: 0; background: rgba(8, 10, 12, .72); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); z-index: 20; }
+.sheet-card { background: var(--surface); border-radius: var(--radius); padding: 16px; max-width: min(920px, 100%); max-height: 100%; overflow: auto; display: grid; gap: 12px; }
+.sheet-card img, .sheet-card video { max-width: 100%; max-height: 70vh; border-radius: 6px; display: block; margin: 0 auto; }
+.sheet-card p { margin: 0; color: var(--muted); font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .status.busy .dot { animation: none; } }
+</style>
+
+<header class="top">
+  <div class="brand">
+    <h1>Aesthetic Consult Simulator</h1>
+    <p>Show a client a preview of nose, fold, lift, wrinkle and eye-bag treatments on her own photo.</p>
+  </div>
+  <div class="actions">
+    <button class="btn primary" id="btnUpload" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>
+      Choose photo
+    </button>
+    <button class="btn" id="btnSaveImg" type="button" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14"/></svg>
+      Save before/after
+    </button>
+    <button class="btn" id="btnSaveVid" type="button" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M17 10l4-2v8l-4-2"/></svg>
+      Save morph video
+    </button>
+    <input type="file" id="file" accept="image/*" hidden>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="stage-wrap">
+    <div class="stage" id="stage">
+      <div class="empty" id="empty">
+        <svg class="face" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M60 14c-21 0-34 16-34 38 0 15 5 29 13 39 6 8 14 13 21 13s15-5 21-13c8-10 13-24 13-39 0-22-13-38-34-38z"/>
+          <path d="M44 50c4-3 9-3 12 0M64 50c3-3 8-3 12 0"/>
+          <path d="M60 54v18c0 3-2 5-5 5"/>
+          <path d="M51 88c6 3 12 3 18 0"/>
+          <path d="M47 76c-3 5-3 9-1 13M73 76c3 5 3 9 1 13" stroke-dasharray="2 3"/>
+        </svg>
+        <h2>Start with a client photo</h2>
+        <p>Front, 45° or side view, face well lit and not covered by hair. Drop the photo here, paste it, or choose a file. The photo stays on this device.</p>
+        <button class="btn primary" id="btnUpload2" type="button">Choose photo</button>
+      </div>
+      <div class="frame" id="frame" hidden>
+        <canvas id="gl"></canvas>
+        <svg class="overlay" id="overlay" aria-hidden="true"></svg>
+        <span class="tag left" id="tagL" hidden>Before</span>
+        <span class="tag right" id="tagR" hidden>Simulated</span>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="View">
+        <button type="button" id="vBefore" aria-pressed="false">Before</button>
+        <button type="button" id="vSplit" aria-pressed="true">Split</button>
+        <button type="button" id="vAfter" aria-pressed="false">After</button>
+      </div>
+      <div class="tools">
+        <button class="btn" type="button" id="btnPlay" disabled>Play morph</button>
+        <button class="btn" type="button" id="btnPoints" aria-pressed="false" disabled>Adjust points</button>
+      </div>
+    </div>
+    <div class="status" id="status"><span class="dot"></span><span id="statusText">Face engine loads in the background.</span></div>
+  </section>
+
+  <aside class="panel" id="panel" aria-disabled="true">
+    <h2>Treatments</h2>
+    <div id="txList"></div>
+    <div class="panel-foot">
+      <div class="row">
+        <button class="btn" type="button" id="btnAll">Turn all on</button>
+        <button class="btn" type="button" id="btnReset">Reset</button>
+      </div>
+      <p class="note">Simulation for consultation only. Real results depend on anatomy, product and technique, and are not guaranteed. Get the client's consent before saving or sending her photo.</p>
+    </div>
+  </aside>
+</main>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-card">
+    <div id="sheetMedia"></div>
+    <p id="sheetText"></p>
+    <div><button class="btn" type="button" id="sheetClose">Close</button></div>
+  </div>
+</div>
+
+<script type="module">
+const TASKS = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+const MAX_SIDE = 1600, MAX_MOVES = 24;
+
+const TREATMENTS = [
+  { id: "tip",     name: "Nose tip lift",       zone: "Tip projection and rotation · thread / filler", def: 60 },
+  { id: "bridge",  name: "Nose bridge",         zone: "Higher dorsum, slimmer front view · thread / filler", def: 55 },
+  { id: "naso",    name: "Nasolabial folds",    zone: "Soften the smile lines · filler", def: 65 },
+  { id: "lift",    name: "Thread lift",         zone: "Jowls and mid-face lifted · PDO / PCL threads", def: 55 },
+  { id: "wrinkle", name: "Fine lines",          zone: "Forehead, crow's feet, texture · skin booster / toxin", def: 55 },
+  { id: "eyebag",  name: "Eye bags",            zone: "Under-eye hollow and puffiness · tear trough", def: 65 },
+];
+
+// MediaPipe face mesh indices
+const OVAL = [10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109];
+const EYE_A = [33,7,163,144,145,153,154,155,133,173,157,158,159,160,161,246];
+const EYE_B = [263,249,390,373,374,380,381,382,362,398,384,385,386,387,388,466];
+const LID_A = [33,7,163,144,145,153,154,155,133];
+const LID_B = [263,249,390,373,374,380,381,382,362];
+const BROW_A = [70,63,105,66,107,55,65,52,53,46];
+const BROW_B = [300,293,334,296,336,285,295,282,283,276];
+const LIPS = [61,146,91,181,84,17,314,405,321,375,291,409,270,269,267,0,37,39,40,185];
+
+// Points the clinician can drag to correct the detection
+const ANCHOR_INFO = {
+  top: "Forehead top", chin: "Chin", root: "Nose root", tip: "Nose tip", sub: "Under nose",
+  alaA: "Nose wing", alaB: "Nose wing", mouthA: "Mouth corner", mouthB: "Mouth corner",
+  foldTopA: "Fold start", foldBotA: "Fold end", foldTopB: "Fold start", foldBotB: "Fold end",
+  eyeA: "Lower lid", eyeB: "Lower lid", jowlA: "Jowl", jowlB: "Jowl", cheekA: "Cheek", cheekB: "Cheek",
+  sideA: "Face edge", sideB: "Face edge",
+};
+
+const $ = (id) => document.getElementById(id);
+const state = {
+  img: null, W: 0, H: 0, mesh: null, anchors: null, meshAnchors: null,
+  on: Object.fromEntries(TREATMENTS.map(t => [t.id, false])),
+  val: Object.fromEntries(TREATMENTS.map(t => [t.id, t.def])),
+  view: "split", split: 0.5, holdBefore: false, morph: 1, playing: false, showPoints: false,
+  geom: null,
+};
+
+/* ---------- small vector helpers ---------- */
+const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
+const mul = (a, s) => [a[0] * s, a[1] * s];
+const len = (a) => Math.hypot(a[0], a[1]);
+const norm = (a) => { const l = len(a); return l > 1e-6 ? [a[0] / l, a[1] / l] : [0, 0]; };
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1];
+const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+
+/* ---------- status ---------- */
+function setStatus(text, kind = "") {
+  $("statusText").textContent = text;
+  $("status").className = "status " + kind;
+}
+
+/* ---------- treatment panel ---------- */
+function strengthLabel(v) { return v < 34 ? "Mild" : v < 67 ? "Moderate" : "Strong"; }
+function buildPanel() {
+  const list = $("txList");
+  for (const t of TREATMENTS) {
+    const row = document.createElement("div");
+    row.className = "tx off"; row.id = "row-" + t.id;
+    row.innerHTML = `
+      <div class="tx-head">
+        <div class="tx-name"><b>${t.name}</b><span>${t.zone}</span></div>
+        <button type="button" class="switch" id="sw-${t.id}" aria-pressed="false" aria-label="${t.name}">Off</button>
+      </div>
+      <div class="tx-slider">
+        <input type="range" min="0" max="100" step="1" id="sl-${t.id}" value="${t.def}" aria-label="${t.name} strength">
+        <span class="tx-val" id="val-${t.id}"></span>
+      </div>`;
+    list.appendChild(row);
+    $("sw-" + t.id).addEventListener("click", () => setOn(t.id, !state.on[t.id]));
+    $("sl-" + t.id).addEventListener("input", (e) => {
+      state.val[t.id] = +e.target.value;
+      if (!state.on[t.id]) setOn(t.id, true); else { syncRow(t.id); render(); }
+    });
+    syncRow(t.id);
+  }
+}
+function syncRow(id) {
+  const on = state.on[id];
+  $("sw-" + id).setAttribute("aria-pressed", on);
+  $("sw-" + id).textContent = on ? "On" : "Off";
+  $("row-" + id).classList.toggle("off", !on);
+  $("val-" + id).textContent = `${strengthLabel(state.val[id])} ${String(state.val[id]).padStart(3, " ")}%`;
+}
+function setOn(id, on) {
+  state.on[id] = on; syncRow(id);
+  if (on && state.view === "before") setView("split");
+  render();
+}
+
+/* ---------- WebGL renderer ---------- */
+const canvas = $("gl");
+const gl = canvas.getContext("webgl", { preserveDrawingBuffer: true, premultipliedAlpha: false, antialias: false });
+const VS = `attribute vec2 a; varying vec2 vUv; void main(){ vUv = vec2((a.x+1.)*.5, (1.-a.y)*.5); gl_Position = vec4(a,0.,1.); }`;
+const FS = `precision highp float;
+varying vec2 vUv;
+uniform sampler2D uSrc, uMask, uMid, uBig;
+uniform vec2 uSize;
+uniform vec4 uMv[${MAX_MOVES}];
+uniform vec2 uVv[${MAX_MOVES}];
+uniform int uN;
+uniform vec3 uAmt;
+uniform vec3 uRef;
+uniform float uSR, uSplit, uBefore;
+float luma(vec3 c){ return dot(c, vec3(.299,.587,.114)); }
+vec3 ycc(vec3 c){ float y = luma(c); return vec3(y, (c.b-y)*.564, (c.r-y)*.713); }
+void main(){
+  vec2 p = vUv * uSize;
+  if (uBefore > .5 || p.x < uSplit) { gl_FragColor = vec4(texture2D(uSrc, vUv).rgb, 1.); return; }
+  vec2 q = p;
+  for (int i = 0; i < ${MAX_MOVES}; i++) {
+    if (i >= uN) break;
+    vec4 m = uMv[i]; vec2 d = p - m.xy; float t = dot(d,d) / (m.z*m.z);
+    if (t < 1.) { float w = 1. - t; q -= uVv[i] * w * w; }
+  }
+  vec2 uv = q / uSize;
+  vec3 c = texture2D(uSrc, uv).rgb;
+  vec4 mk = texture2D(uMask, uv);
+  vec3 y = ycc(c);
+  float gate = (1. - smoothstep(.045, .11, length(y.yz - uRef.yz))) * smoothstep(.3, .55, y.x / max(uRef.x, .01));
+  float sm = clamp(gate * (mk.r*uAmt.x*.75 + mk.g*uAmt.y*.65 + mk.b*uAmt.z*.8), 0., .92);
+  if (sm > .001) {
+    vec3 acc = c; float ws = 1.;
+    for (int i = 0; i < 20; i++) {
+      float fi = float(i); float a = fi * 2.39996; float rr = sqrt((fi + .5) / 20.);
+      vec2 o = vec2(cos(a), sin(a)) * rr * uSR / uSize;
+      vec3 s = texture2D(uSrc, uv + o).rgb; vec3 dd = s - c;
+      float w = exp(-dot(dd,dd) * 45.); acc += s * w; ws += w;
+    }
+    c = mix(c, acc / ws, sm);
+  }
+  float fb = gate * (mk.r*uAmt.x*.95 + mk.g*uAmt.y*.9);
+  float fm = gate * mk.b * uAmt.z * .7;
+  if (fb + fm > .001) {
+    float L = luma(c);
+    float lb = luma(texture2D(uBig, uv).rgb), lm = luma(texture2D(uMid, uv).rgb);
+    float lift = max(lb - L, 0.) * fb + max(lm - L, 0.) * fm;
+    c *= (L + lift) / max(L, .02);
+  }
+  gl_FragColor = vec4(clamp(c, 0., 1.), 1.);
+}`;
+let prog, U = {}, tex = {};
+function initGL() {
+  if (!gl) return false;
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+  prog = gl.createProgram();
+  gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog); gl.useProgram(prog);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, "a"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  for (const n of ["uSrc","uMask","uMid","uBig","uSize","uMv","uVv","uN","uAmt","uRef","uSR","uSplit","uBefore"]) U[n] = gl.getUniformLocation(prog, n);
+  ["uSrc","uMask","uMid","uBig"].forEach((n, i) => { gl.uniform1i(U[n], i); tex[n] = gl.createTexture(); });
+  return true;
+}
+function upload(name, unit, data, w, h) {
+  gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex[name]);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  if (w) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+  else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, data);
+  for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
+}
+
+function amount(id) { return state.on[id] ? state.val[id] / 100 : 0; }
+function draw({ before = false, split = -1, morph = 1 } = {}) {
+  if (!state.geom) return;
+  const g = state.geom;
+  const amt = (id) => amount(id) * morph;
+  const moves = [];
+  for (const m of g.moves) { const a = amt(m.t); if (a > 0) moves.push({ c: m.c, r: m.r, v: mul(m.v, a) }); }
+  const mv = new Float32Array(MAX_MOVES * 4), vv = new Float32Array(MAX_MOVES * 2);
+  moves.slice(0, MAX_MOVES).forEach((m, i) => { mv.set([m.c[0], m.c[1], m.r, 0], i * 4); vv.set(m.v, i * 2); });
+  gl.viewport(0, 0, state.W, state.H);
+  gl.uniform2f(U.uSize, state.W, state.H);
+  gl.uniform4fv(U.uMv, mv); gl.uniform2fv(U.uVv, vv); gl.uniform1i(U.uN, Math.min(moves.length, MAX_MOVES));
+  gl.uniform3f(U.uAmt, amt("naso"), amt("eyebag"), amt("wrinkle"));
+  gl.uniform3f(U.uRef, g.ref[0], g.ref[1], g.ref[2]);
+  gl.uniform1f(U.uSR, g.smoothR);
+  gl.uniform1f(U.uSplit, split);
+  gl.uniform1f(U.uBefore, before ? 1 : 0);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+let raf = 0;
+function render() {
+  if (raf) return;
+  raf = requestAnimationFrame(() => {
+    raf = 0;
+    if (!state.geom) return;
+    const v = state.holdBefore ? "before" : state.view;
+    draw({ before: v === "before", split: v === "split" ? state.split * state.W : -1, morph: state.morph });
+    $("tagL").hidden = !(v === "before" || v === "split");
+    $("tagR").hidden = !(v === "after" || v === "split");
+    $("tagL").textContent = "Before";
+    drawOverlay();
+  });
+}
+
+/* ---------- geometry: anchors -> warps + masks ---------- */
+function anchorsFromMesh(P) {
+  const ext = (a, b, k) => add(P[b], mul(sub(P[b], P[a]), k));
+  return {
+    top: P[10], chin: P[152], root: P[168], tip: P[1], sub: P[2],
+    alaA: P[129], alaB: P[358], mouthA: P[61], mouthB: P[291],
+    foldTopA: mix(P[129], P[203], .55), foldBotA: ext(206, 216, .7),
+    foldTopB: mix(P[358], P[423], .55), foldBotB: ext(426, 436, .7),
+    eyeA: P[145], eyeB: P[374], jowlA: P[150], jowlB: P[379], cheekA: P[205], cheekB: P[425],
+    sideA: P[234], sideB: P[454],
+  };
+}
+function templateAnchors(W, H) {
+  const cx = W / 2, cy = H * .5, h = Math.min(H * .7, W * .9), s = h / 100;
+  const at = (x, y) => [cx + x * s, cy + y * s];
+  return {
+    top: at(0, -50), chin: at(0, 50), root: at(0, -14), tip: at(0, 8), sub: at(0, 13),
+    alaA: at(-8, 11), alaB: at(8, 11), mouthA: at(-13, 27), mouthB: at(13, 27),
+    foldTopA: at(-12, 12), foldBotA: at(-18, 30), foldTopB: at(12, 12), foldBotB: at(18, 30),
+    eyeA: at(-19, -9), eyeB: at(19, -9), jowlA: at(-24, 36), jowlB: at(24, 36), cheekA: at(-22, 12), cheekB: at(22, 12),
+    sideA: at(-36, 0), sideB: at(36, 0),
+  };
+}
+
+function computeGeometry() {
+  const A = state.anchors, M = state.mesh, W = state.W, H = state.H;
+  const fH = len(sub(A.top, A.chin));
+  const up = norm(sub(A.top, A.chin));
+  const midSide = mix(A.sideA, A.sideB, .5);
+  const proj = sub(A.tip, midSide);
+  const perp = sub(proj, mul(up, dot(proj, up)));
+  const turn = len(perp) / fH, yaw = clamp(turn / .35, 0, 1);
+  const fdir = norm(perp);
+  const midMouth = mix(A.mouthA, A.mouthB, .5);
+  const lateral = (side) => { const d = sub(side, midMouth); return norm(sub(d, mul(up, dot(d, up)))); };
+  const visible = (side) => { const d = sub(side, A.tip); return clamp((len(sub(d, mul(up, dot(d, up)))) / fH - .15) / .25, 0, 1); };
+  const vis = { A: visible(A.sideA), B: visible(A.sideB) };
+
+  const moves = [];
+  const mv = (t, c, r, v) => { const L = len(v), cap = .35 * r; moves.push({ t, c, r, v: L > cap ? mul(v, cap / L) : v }); };
+  // Nose tip: rotate up and project forward (forward only shows on angled views)
+  mv("tip", A.tip, .085 * fH, add(mul(up, .026 * fH), mul(fdir, .024 * fH * yaw)));
+  mv("tip", A.sub, .05 * fH, mul(up, .009 * fH));
+  for (const s of ["A", "B"]) mv("tip", A["ala" + s], .045 * fH, mul(norm(sub(A.tip, A["ala" + s])), .011 * fH * (1 - .6 * yaw) * vis[s]));
+  // Bridge: raise the dorsum on angled views, slim the walls on front views
+  const nAxis = norm(sub(A.tip, A.root)), nSide = [-nAxis[1], nAxis[0]];
+  for (const t of [.22, .45, .68]) mv("bridge", mix(A.root, A.tip, t), .075 * fH, mul(fdir, .016 * fH * yaw * Math.sin(Math.PI * (t * .8 + .1))));
+  for (const t of [.4, .65, .85]) for (const sgn of [-1, 1]) {
+    const c = add(mix(A.root, A.tip, t), mul(nSide, sgn * .055 * fH));
+    mv("bridge", c, .045 * fH, mul(nSide, -sgn * .008 * fH * (1 - yaw)));
+  }
+  // Thread lift: jowls and mid-cheek pulled up and back toward the ear
+  for (const s of ["A", "B"]) {
+    const lat = lateral(A["side" + s]), k = vis[s];
+    mv("lift", A["jowl" + s], .18 * fH, mul(add(mul(up, .032 * fH), mul(lat, .012 * fH)), k));
+    mv("lift", A["cheek" + s], .15 * fH, mul(add(mul(up, .016 * fH), mul(lat, .006 * fH)), k));
+  }
+  // Eye bags: slight upward tuck of the lower-lid fat pad
+  for (const s of ["A", "B"]) mv("eyebag", add(A["eye" + s], mul(up, -.045 * fH)), .05 * fH, mul(up, .006 * fH * vis[s]));
+
+  // Masks (R folds, G under-eye, B skin) at half resolution
+  const sc = .5, MW = Math.max(2, Math.round(W * sc)), MH = Math.max(2, Math.round(H * sc));
+  const layer = () => { const c = document.createElement("canvas"); c.width = MW; c.height = MH; const x = c.getContext("2d"); x.scale(sc, sc); x.fillStyle = x.strokeStyle = "#fff"; x.lineCap = x.lineJoin = "round"; return [c, x]; };
+  const path = (x, pts, close) => { x.beginPath(); pts.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); if (close) x.closePath(); };
+  const P = M; const pick = (ids) => ids.map(i => P[i]);
+  const shiftA = M ? sub(A.eyeA, P[145]) : [0, 0], shiftB = M ? sub(A.eyeB, P[374]) : [0, 0];
+
+  // R: nasolabial folds, a soft curved band from the nose wing to beside the mouth
+  const [cR, xR] = layer();
+  for (const s of ["A", "B"]) {
+    const t0 = A["foldTop" + s], t1 = A["foldBot" + s];
+    const out = mul(lateral(A["side" + s]), .012 * fH);
+    const ctl = add(mix(t0, t1, .5), out);
+    xR.globalAlpha = vis[s]; xR.lineWidth = .05 * fH;
+    xR.beginPath(); xR.moveTo(t0[0], t0[1]); xR.quadraticCurveTo(ctl[0], ctl[1], t1[0], t1[1]); xR.stroke();
+  }
+  // G: under-eye band
+  const [cG, xG] = layer();
+  const down = mul(up, -1);
+  for (const s of ["A", "B"]) {
+    let lid;
+    if (M) lid = pick(s === "A" ? LID_A : LID_B).map(p => add(p, s === "A" ? shiftA : shiftB));
+    else { const e = A["eye" + s], w = .07 * fH, sd = [up[1], -up[0]]; lid = [-1, -.5, 0, .5, 1].map(k => add(add(e, mul(sd, k * w)), mul(up, Math.abs(k) * .012 * fH))); }
+    const n = lid.length, topEdge = [], botEdge = [];
+    lid.forEach((p, i) => { const k = Math.sin(Math.PI * i / (n - 1)); topEdge.push(add(p, mul(down, (.006 + .008 * k) * fH))); botEdge.push(add(p, mul(down, (.012 + .06 * k) * fH))); });
+    xG.globalAlpha = vis[s]; path(xG, topEdge.concat(botEdge.reverse()), true); xG.fill();
+  }
+  // B: facial skin minus eyes, brows, lips, nostrils
+  const [cB, xB] = layer();
+  if (M) { path(xB, pick(OVAL), true); xB.fill(); }
+  else { const o = catmull([A.top, A.sideB, A.jowlB, A.chin, A.jowlA, A.sideA]); path(xB, o, true); xB.fill(); }
+  xB.globalCompositeOperation = "destination-out"; xB.lineWidth = .035 * fH;
+  if (M) {
+    for (const ids of [EYE_A, EYE_B, LIPS]) { path(xB, pick(ids), true); xB.fill(); xB.stroke(); }
+    xB.lineWidth = .05 * fH; for (const ids of [BROW_A, BROW_B]) { path(xB, pick(ids), false); xB.stroke(); }
+  } else {
+    for (const s of ["A", "B"]) { const e = add(A["eye" + s], mul(up, .025 * fH)); xB.beginPath(); xB.ellipse(e[0], e[1], .075 * fH, .035 * fH, Math.atan2(up[0], -up[1]), 0, 7); xB.fill(); }
+    const mm = mix(A.mouthA, A.mouthB, .5); xB.beginPath(); xB.ellipse(mm[0], mm[1], len(sub(A.mouthA, A.mouthB)) * .6, .045 * fH, Math.atan2(A.mouthB[1] - A.mouthA[1], A.mouthB[0] - A.mouthA[0]), 0, 7); xB.fill();
+  }
+  for (const p of [A.alaA, A.alaB, A.sub]) { xB.beginPath(); xB.arc(p[0], p[1] + .006 * fH, .022 * fH, 0, 7); xB.fill(); }
+
+  const rd = (c) => c.getContext("2d").getImageData(0, 0, MW, MH).data;
+  const dR = rd(cR), dG = rd(cG), dB = rd(cB), N = MW * MH;
+  const chR = new Float32Array(N), chG = new Float32Array(N), chB = new Float32Array(N);
+  for (let i = 0; i < N; i++) { chR[i] = dR[i * 4 + 3] / 255; chG[i] = dG[i * 4 + 3] / 255; chB[i] = dB[i * 4 + 3] / 255; }
+  const pxs = fH * sc;
+  blur(chR, MW, MH, Math.max(1, Math.round(.018 * pxs)));
+  blur(chG, MW, MH, Math.max(1, Math.round(.012 * pxs)));
+  blur(chB, MW, MH, Math.max(1, Math.round(.012 * pxs)));
+  const mask = new Uint8Array(N * 4);
+  for (let i = 0; i < N; i++) { mask[i * 4] = chR[i] * 255; mask[i * 4 + 1] = chG[i] * 255; mask[i * 4 + 2] = chB[i] * 255; mask[i * 4 + 3] = 255; }
+  upload("uMask", 1, mask, MW, MH);
+
+  // Reference skin colour and skin-weighted blurs (surrounding skin brightness for fold / bag fill)
+  const small = document.createElement("canvas"); small.width = MW; small.height = MH;
+  const sx = small.getContext("2d"); sx.drawImage(state.img, 0, 0, MW, MH);
+  const px = sx.getImageData(0, 0, MW, MH).data;
+  const samples = [];
+  for (let i = 0; i < N; i += 3) if (chB[i] > .85) { const r = px[i*4]/255, g = px[i*4+1]/255, b = px[i*4+2]/255; samples.push([.299*r+.587*g+.114*b, r, g, b]); }
+  samples.sort((a, b) => a[0] - b[0]);
+  const core = samples.slice(Math.floor(samples.length * .3), Math.ceil(samples.length * .85));
+  let ref = [.6, -.05, .08];
+  if (core.length) {
+    const m = core.reduce((s, v) => [s[0] + v[1], s[1] + v[2], s[2] + v[3]], [0, 0, 0]).map(v => v / core.length);
+    const y = .299 * m[0] + .587 * m[1] + .114 * m[2]; ref = [y, (m[2] - y) * .564, (m[0] - y) * .713];
+  }
+  const wgt = new Float32Array(N), cr = new Float32Array(N), cg = new Float32Array(N), cb = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    const r = px[i*4]/255, g = px[i*4+1]/255, b = px[i*4+2]/255, y = .299*r + .587*g + .114*b;
+    const d = Math.hypot((b - y) * .564 - ref[1], (r - y) * .713 - ref[2]);
+    const gate = (1 - smooth(.045, .11, d)) * smooth(.3, .55, y / ref[0]);
+    const w = Math.min(1, chB[i] + chR[i] + chG[i]) * gate + 1e-4;
+    wgt[i] = w; cr[i] = r * w; cg[i] = g * w; cb[i] = b * w;
+  }
+  const makeBlur = (radius, unit, name) => {
+    const a = [cr.slice(), cg.slice(), cb.slice(), wgt.slice()];
+    a.forEach(ch => blur(ch, MW, MH, radius));
+    const out = new Uint8Array(N * 4);
+    for (let i = 0; i < N; i++) {
+      const w = a[3][i];
+      if (w > .02) { out[i*4] = a[0][i] / w * 255; out[i*4+1] = a[1][i] / w * 255; out[i*4+2] = a[2][i] / w * 255; }
+      else { out[i*4] = px[i*4]; out[i*4+1] = px[i*4+1]; out[i*4+2] = px[i*4+2]; }
+      out[i*4+3] = 255;
+    }
+    upload(name, unit, out, MW, MH);
+  };
+  makeBlur(Math.max(1, Math.round(.009 * pxs)), 2, "uMid");
+  makeBlur(Math.max(2, Math.round(.035 * pxs)), 3, "uBig");
+
+  state.geom = { moves, ref, smoothR: Math.max(2, .013 * fH), fH, yaw, turn, vis };
+}
+function smooth(a, b, x) { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
+function catmull(pts, seg = 10) {
+  const out = [], n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+    for (let k = 0; k < seg; k++) {
+      const t = k / seg, t2 = t * t, t3 = t2 * t;
+      out.push([0, 1].map(j => .5 * (2 * p1[j] + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t3)));
+    }
+  }
+  return out;
+}
+// Three box-blur passes per axis approximate a gaussian
+function blur(a, w, h, r) {
+  const tmp = new Float32Array(a.length);
+  const pass = (src, dst, n, stride, lines, lineStride) => {
+    const inv = 1 / (2 * r + 1);
+    for (let l = 0; l < lines; l++) {
+      const o = l * lineStride; let acc = 0;
+      for (let k = -r; k <= r; k++) acc += src[o + clamp(k, 0, n - 1) * stride];
+      for (let i = 0; i < n; i++) {
+        dst[o + i * stride] = acc * inv;
+        acc += src[o + Math.min(i + r + 1, n - 1) * stride] - src[o + Math.max(i - r, 0) * stride];
+      }
+    }
+  };
+  for (let k = 0; k < 3; k++) { pass(a, tmp, w, 1, h, w); pass(tmp, a, h, w, w, 1); }
+}
+
+/* ---------- overlay: split handle + adjustable points ---------- */
+const svg = $("overlay");
+function drawOverlay() {
+  const W = state.W, H = state.H;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("preserveAspectRatio", "none");
+  const u = W / (canvas.getBoundingClientRect().width || W); // px of image per css px
+  let s = "";
+  const v = state.holdBefore ? "before" : state.view;
+  if (v === "split") {
+    const x = state.split * W;
+    s += `<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="#fff" stroke-width="${2 * u}"/>`;
+    s += `<circle cx="${x}" cy="${H / 2}" r="${16 * u}" fill="#fff"/>`;
+    s += `<path d="M${x - 6 * u} ${H / 2 - 6 * u} l${-6 * u} ${6 * u} l${6 * u} ${6 * u} M${x + 6 * u} ${H / 2 - 6 * u} l${6 * u} ${6 * u} l${-6 * u} ${6 * u}" stroke="#222" stroke-width="${2 * u}" fill="none"/>`;
+  }
+  if (state.showPoints && state.anchors) {
+    const A = state.anchors;
+    for (const s2 of ["A", "B"]) if (state.geom.vis[s2] > .35) s += `<line x1="${A["foldTop" + s2][0]}" y1="${A["foldTop" + s2][1]}" x2="${A["foldBot" + s2][0]}" y2="${A["foldBot" + s2][1]}" stroke="#ffd34d" stroke-width="${1.5 * u}" stroke-dasharray="${4 * u} ${3 * u}"/>`;
+    for (const [k, p] of shownAnchors()) {
+      s += `<circle cx="${p[0]}" cy="${p[1]}" r="${(drag && drag.key === k ? 9 : 6) * u}" fill="rgba(255,211,77,.9)" stroke="#1a1a1a" stroke-width="${1.2 * u}"/>`;
+    }
+    if (drag && drag.key) { const p = A[drag.key]; s += `<text x="${p[0] + 12 * u}" y="${p[1] - 10 * u}" font-size="${13 * u}" font-family="Figtree, sans-serif" fill="#fff" stroke="#000" stroke-width="${3 * u}" paint-order="stroke">${ANCHOR_INFO[drag.key]}</text>`; }
+  }
+  svg.innerHTML = s;
+}
+let drag = null;
+// Hide points on the far side of a turned face; they sit behind the nose and only get in the way
+const HIDEABLE = /^(ala|foldTop|foldBot|jowl|cheek|side)([AB])$/;
+function shownAnchors() {
+  const vis = state.geom ? state.geom.vis : { A: 1, B: 1 };
+  return Object.entries(state.anchors || {}).filter(([k]) => { const m = k.match(HIDEABLE); return !m || vis[m[2]] > .35 || (drag && drag.key === k); });
+}
+function toImage(e) { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * state.W, (e.clientY - r.top) / r.height * state.H]; }
+const frame = $("frame");
+frame.addEventListener("pointerdown", (e) => {
+  if (!state.geom || state.playing) return;
+  const p = toImage(e), u = state.W / canvas.getBoundingClientRect().width;
+  frame.setPointerCapture(e.pointerId);
+  if (state.showPoints) {
+    let best = null, bd = 22 * u;
+    for (const [k, a] of shownAnchors()) { const d = len(sub(a, p)); if (d < bd) { bd = d; best = k; } }
+    if (best) { drag = { key: best }; render(); return; }
+  }
+  if (state.view === "split") { drag = { split: true }; state.split = clamp(p[0] / state.W, 0, 1); render(); return; }
+  if (state.view === "after") { state.holdBefore = true; drag = { hold: true }; render(); }
+});
+frame.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const p = toImage(e);
+  if (drag.key) { state.anchors[drag.key] = [clamp(p[0], 0, state.W), clamp(p[1], 0, state.H)]; drag.moved = true; render(); }
+  else if (drag.split) { state.split = clamp(p[0] / state.W, 0, 1); render(); }
+});
+const endDrag = () => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.hold) state.holdBefore = false;
+  if (d.key && d.moved) { setStatus("Recalculating with your adjusted points…", "busy"); setTimeout(() => { computeGeometry(); setStatus("Points updated.", "ok"); render(); }, 10); }
+  render();
+};
+frame.addEventListener("pointerup", endDrag);
+frame.addEventListener("pointercancel", endDrag);
+
+/* ---------- view controls ---------- */
+function setView(v) {
+  state.view = v;
+  for (const [id, name] of [["vBefore", "before"], ["vSplit", "split"], ["vAfter", "after"]]) $(id).setAttribute("aria-pressed", v === name);
+  render();
+}
+$("vBefore").onclick = () => setView("before");
+$("vSplit").onclick = () => setView("split");
+$("vAfter").onclick = () => setView("after");
+$("btnPoints").onclick = () => {
+  state.showPoints = !state.showPoints;
+  $("btnPoints").setAttribute("aria-pressed", state.showPoints);
+  $("btnPoints").textContent = state.showPoints ? "Done adjusting" : "Adjust points";
+  if (state.showPoints) setStatus("Drag the yellow points onto the right spots: nose tip, fold lines, jowls, lower lids.", "");
+  render();
+};
+const ease = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+// one cycle: hold before, morph in, hold after, morph out
+function morphAt(t, period = 4) {
+  const x = (t % period) / period;
+  if (x < .15) return 0; if (x < .45) return ease((x - .15) / .3); if (x < .75) return 1; return 1 - ease((x - .75) / .25);
+}
+$("btnPlay").onclick = () => {
+  if (state.playing) { state.playing = false; return; }
+  state.playing = true; $("btnPlay").textContent = "Stop";
+  const prevView = state.view; state.view = "after"; const t0 = performance.now();
+  const tick = (now) => {
+    if (!state.playing) { state.morph = 1; setView(prevView); $("btnPlay").textContent = "Play morph"; return; }
+    state.morph = morphAt((now - t0) / 1000);
+    $("tagR").hidden = false; $("tagL").hidden = true;
+    draw({ morph: state.morph });
+    $("tagR").textContent = state.morph > .5 ? "Simulated" : "Before";
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+};
+$("btnAll").onclick = () => { TREATMENTS.forEach(t => { state.on[t.id] = true; syncRow(t.id); }); if (state.view === "before") setView("split"); render(); };
+$("btnReset").onclick = () => { TREATMENTS.forEach(t => { state.on[t.id] = false; state.val[t.id] = t.def; $("sl-" + t.id).value = t.def; syncRow(t.id); }); if (state.mesh) { state.anchors = structuredClone(state.meshAnchors); computeGeometry(); } render(); };
+
+/* ---------- face engine ---------- */
+let enginePromise = null;
+function loadEngine() {
+  if (enginePromise) return enginePromise;
+  enginePromise = (async () => {
+    const [{ FaceLandmarker }, model] = await Promise.all([
+      import(`${TASKS}/vision_bundle.mjs`),
+      // model ships base64-encoded as text, since artifacts only serve web file types
+      fetch("face_landmarker.txt").then(r => { if (!r.ok) throw new Error("model " + r.status); return r.text(); })
+        .then(b64 => { const bin = atob(b64.trim()), out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }),
+    ]);
+    return FaceLandmarker.createFromOptions(
+      { wasmLoaderPath: `${TASKS}/wasm/vision_wasm_internal.js`, wasmBinaryPath: "vision_wasm_internal.wasm" },
+      { baseOptions: { modelAssetBuffer: model, delegate: "CPU" }, runningMode: "IMAGE", numFaces: 1, minFaceDetectionConfidence: .3, minFacePresenceConfidence: .3 });
+  })();
+  return enginePromise;
+}
+
+/* ---------- loading a photo ---------- */
+async function loadFile(file) {
+  if (!file || !file.type.startsWith("image/")) { setStatus("That file is not a photo. Choose a JPG, PNG or HEIC image.", "warn"); return; }
+  const url = URL.createObjectURL(file);
+  const im = new Image(); im.src = url;
+  try { await im.decode(); } catch { setStatus("This photo format can't be opened here. Export it as JPG and try again.", "warn"); return; }
+  const k = Math.min(1, MAX_SIDE / Math.max(im.naturalWidth, im.naturalHeight), (gl ? gl.getParameter(gl.MAX_TEXTURE_SIZE) : 4096) / Math.max(im.naturalWidth, im.naturalHeight));
+  const W = Math.round(im.naturalWidth * k), H = Math.round(im.naturalHeight * k);
+  const c = document.createElement("canvas"); c.width = W; c.height = H; c.getContext("2d").drawImage(im, 0, 0, W, H);
+  URL.revokeObjectURL(url);
+  Object.assign(state, { img: c, W, H, mesh: null, anchors: null, geom: null, split: .5, morph: 1 });
+  canvas.width = W; canvas.height = H;
+  $("empty").hidden = true; $("frame").hidden = false;
+  upload("uSrc", 0, c);
+  setStatus("Finding the face…", "busy");
+  let P = null;
+  try {
+    const fl = await loadEngine();
+    const r = fl.detect(c);
+    if (r.faceLandmarks && r.faceLandmarks.length) P = r.faceLandmarks[0].map(p => [p.x * W, p.y * H]);
+  } catch (err) { console.warn(err); state.engineError = true; }
+  if (P) {
+    state.mesh = P; state.meshAnchors = anchorsFromMesh(P); state.anchors = structuredClone(state.meshAnchors);
+    computeGeometry();
+    const view = state.geom.turn > .6 ? "side view" : state.geom.turn > .12 ? "angled view" : "front view";
+    setStatus(`Face found (${view}). Turn on a treatment to see it. Use Adjust points if a marker is off.`, "ok");
+  } else {
+    state.anchors = templateAnchors(W, H); computeGeometry();
+    if (!state.showPoints) $("btnPoints").click();
+    setStatus(state.engineError
+      ? "Automatic face finding is unavailable here. Drag the yellow points onto the face, then turn on treatments."
+      : "No face found automatically (common for full side profiles). Drag the yellow points onto the face, then turn on treatments.", "warn");
+  }
+  $("panel").setAttribute("aria-disabled", "false");
+  for (const id of ["btnSaveImg", "btnSaveVid", "btnPlay", "btnPoints"]) $(id).disabled = false;
+  render();
+}
+$("btnUpload").onclick = $("btnUpload2").onclick = () => $("file").click();
+$("file").onchange = (e) => { loadFile(e.target.files[0]); e.target.value = ""; };
+const stage = $("stage");
+stage.addEventListener("dragover", (e) => { e.preventDefault(); stage.classList.add("drag"); });
+stage.addEventListener("dragleave", () => stage.classList.remove("drag"));
+stage.addEventListener("drop", (e) => { e.preventDefault(); stage.classList.remove("drag"); loadFile(e.dataTransfer.files[0]); });
+window.addEventListener("paste", (e) => { const f = [...(e.clipboardData?.files || [])].find(f => f.type.startsWith("image/")); if (f) loadFile(f); });
+
+/* ---------- exporting ---------- */
+let downloads = null;
+window.claude?.use?.("downloads").then(d => { downloads = d; }).catch(() => {});
+const stamp = () => new Date().toISOString().slice(0, 10);
+function exportSize(maxSide) { const k = Math.min(1, maxSide / Math.max(state.W, state.H)); return [Math.round(state.W * k / 2) * 2, Math.round(state.H * k / 2) * 2]; }
+function paintLabels(x, w, h, label, ox = 0) {
+  const fs = Math.max(14, Math.round(h * .03));
+  x.font = `600 ${fs}px Figtree, system-ui, sans-serif`;
+  const tw = x.measureText(label).width;
+  x.fillStyle = "rgba(12,14,16,.62)"; x.fillRect(ox + fs * .6, fs * .6, tw + fs, fs * 1.6);
+  x.fillStyle = "#fff"; x.fillText(label, ox + fs * 1.1, fs * 1.85);
+}
+function paintDisclaimer(x, w, h) {
+  const fs = Math.max(11, Math.round(h * .018));
+  x.font = `500 ${fs}px Figtree, system-ui, sans-serif`;
+  const t = "Simulation only. Actual results vary and are not guaranteed.";
+  const tw = x.measureText(t).width;
+  x.fillStyle = "rgba(12,14,16,.55)"; x.fillRect((w - tw) / 2 - fs * .6, h - fs * 2.4, tw + fs * 1.2, fs * 1.8);
+  x.fillStyle = "#fff"; x.fillText(t, (w - tw) / 2, h - fs * 1.05);
+}
+async function offer(filename, blob, kind) {
+  if (downloads) {
+    try { await downloads.save({ filename, data: blob }); setStatus("Saved " + filename + ".", "ok"); return; }
+    catch (e) { if (e && e.code === "declined") { setStatus("Save cancelled.", ""); return; } if (e && e.code === "rate_limited") { setStatus("A save is already waiting for your answer.", "warn"); return; } }
+  }
+  // Fallback: show it so it can be long-pressed or right-clicked to save
+  const url = URL.createObjectURL(blob);
+  $("sheetMedia").innerHTML = kind === "video" ? `<video src="${url}" controls autoplay loop muted playsinline></video>` : `<img src="${url}" alt="Before and after simulation">`;
+  $("sheetText").textContent = kind === "video" ? "Saving isn't available in this view. Play the video, then use your browser's menu or screen recording to keep it." : "Saving isn't available in this view. Long-press (phone) or right-click (computer) the image to save it.";
+  $("sheet").hidden = false;
+}
+$("sheetClose").onclick = () => { $("sheet").hidden = true; $("sheetMedia").innerHTML = ""; };
+
+$("btnSaveImg").onclick = async () => {
+  const [w, h] = exportSize(1400);
+  const out = document.createElement("canvas"); out.width = w * 2 + Math.round(w * .02); out.height = h;
+  const x = out.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, out.width, h);
+  draw({ before: true }); x.drawImage(canvas, 0, 0, w, h);
+  draw({ morph: 1 }); x.drawImage(canvas, out.width - w, 0, w, h);
+  paintLabels(x, w, h, "Before"); paintLabels(x, w, h, "Simulated", out.width - w);
+  paintDisclaimer(x, out.width, h);
+  render();
+  const blob = await new Promise(r => out.toBlob(r, "image/jpeg", .92));
+  offer(`consult-simulation-${stamp()}.jpg`, blob, "image");
+};
+
+$("btnSaveVid").onclick = async () => {
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { setStatus("This browser can't record video. Use Save before/after instead.", "warn"); return; }
+  const [w, h] = exportSize(1080);
+  const out = document.createElement("canvas"); out.width = w; out.height = h;
+  const x = out.getContext("2d");
+  const type = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"].find(t => MediaRecorder.isTypeSupported(t));
+  if (!type) { setStatus("This browser can't record video. Use Save before/after instead.", "warn"); return; }
+  const stream = out.captureStream(30), rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 6e6 });
+  const chunks = []; rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  const done = new Promise(r => rec.onstop = r);
+  $("btnSaveVid").disabled = true; setStatus("Recording the morph video (8 seconds)…", "busy");
+  const paint = (t) => { const m = morphAt(t); draw({ morph: m }); x.drawImage(canvas, 0, 0, w, h); paintLabels(x, w, h, m > .5 ? "Simulated" : "Before"); paintDisclaimer(x, w, h); };
+  paint(0); rec.start();
+  const t0 = performance.now(), DUR = 8;
+  await new Promise(res => { const step = (now) => { const t = (now - t0) / 1000; paint(Math.min(t, DUR)); if (t < DUR) requestAnimationFrame(step); else res(); }; requestAnimationFrame(step); });
+  rec.stop(); await done; render();
+  $("btnSaveVid").disabled = false;
+  setStatus("Morph video ready.", "ok");
+  const ext = type.includes("mp4") ? "mp4" : "webm";
+  offer(`consult-morph-${stamp()}.${ext}`, new Blob(chunks, { type: type.split(";")[0] }), "video");
+  if (ext === "webm") setStatus("Video saved as WebM. If WhatsApp won't take it, open this page in Safari or a recent Chrome to get MP4.", "warn");
+};
+
+window.addEventListener("resize", render);
+buildPanel();
+if (!initGL()) setStatus("This browser has WebGL turned off, which the simulator needs. Try Chrome or Safari.", "warn");
+else { setStatus("Loading the face engine…", "busy"); loadEngine().then(() => { if (!state.img) setStatus("Face engine ready. Choose a client photo to begin.", "ok"); }).catch(() => { if (!state.img) setStatus("Automatic face finding is unavailable here; you can still place the points by hand.", "warn"); }); }
+window.__sim = { state, loadFile, setOn, setView, computeGeometry, render };
+</script>
