@@ -1,0 +1,7 @@
+/*.wasm
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=604800
+/*.json
+  Cache-Control: public, max-age=604800
+/*.txt
+  Cache-Control: public, max-age=604800

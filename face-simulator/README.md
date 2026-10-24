@@ -37,3 +37,10 @@ photo is never uploaded.
   inlined as base64, rebuilt from `@vladmandic/human-models@3.0.4`
 
 Simulations are illustrative only and not a guarantee of results.
+
+## Live site
+
+Deployed on Netlify as `aesthetic-consult-simulator`
+(https://aesthetic-consult-simulator.netlify.app). The deployed folder holds a
+full-document `index.html` (this file wrapped in `<!doctype html>`, head and
+body), the four engine files above, `_headers` and `netlify.toml`.
