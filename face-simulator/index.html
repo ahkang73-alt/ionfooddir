@@ -60,6 +60,14 @@ button, label.btn { cursor: pointer; }
 
 .layout { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
 @media (max-width: 880px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+/* Phones: keep the photo pinned while the treatment list scrolls underneath */
+@media (max-width: 880px) {
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+  .stage-wrap.has-photo { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 6px 8px; }
+  .stage-wrap.has-photo .stage { min-height: 0; padding: 6px; }
+  .stage-wrap.has-photo .frame canvas { max-height: 40vh; }
+  .stage-wrap.has-photo .status { font-size: 12.5px; line-height: 1.35; }
+}
 
 .stage-wrap { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .stage { background: var(--stage); border-radius: var(--radius); min-height: 340px; display: grid; place-items: center; padding: 12px; position: relative; overflow: hidden; }
@@ -159,8 +167,8 @@ button, label.btn { cursor: pointer; }
     <div class="toolbar">
       <div class="seg" role="group" aria-label="View">
         <button type="button" id="vBefore" aria-pressed="false">Before</button>
-        <button type="button" id="vSplit" aria-pressed="true">Split</button>
-        <button type="button" id="vAfter" aria-pressed="false">After</button>
+        <button type="button" id="vSplit" aria-pressed="false">Split</button>
+        <button type="button" id="vAfter" aria-pressed="true">After</button>
       </div>
       <div class="tools">
         <button class="btn" type="button" id="btnPlay" disabled>Play morph</button>
@@ -228,7 +236,7 @@ const state = {
   img: null, W: 0, H: 0, mesh: null, anchors: null, meshAnchors: null,
   on: Object.fromEntries(TREATMENTS.map(t => [t.id, false])),
   val: Object.fromEntries(TREATMENTS.map(t => [t.id, t.def])),
-  view: "split", split: 0.5, holdBefore: false, morph: 1, playing: false, showPoints: false,
+  view: "after", split: 0.5, holdBefore: false, morph: 1, playing: false, showPoints: false,
   geom: null,
 };
 
@@ -282,7 +290,7 @@ function syncRow(id) {
 }
 function setOn(id, on) {
   state.on[id] = on; syncRow(id);
-  if (on && state.view === "before") setView("split");
+  if (on && state.view === "before") setView("after");
   render();
 }
 
@@ -300,6 +308,7 @@ uniform int uN;
 uniform vec3 uAmt;
 uniform vec3 uRef;
 uniform float uSR, uSplit, uBefore;
+uniform vec2 uDown;
 float luma(vec3 c){ return dot(c, vec3(.299,.587,.114)); }
 vec3 ycc(vec3 c){ float y = luma(c); return vec3(y, (c.b-y)*.564, (c.r-y)*.713); }
 void main(){
@@ -316,24 +325,36 @@ void main(){
   vec4 mk = texture2D(uMask, uv);
   vec3 y = ycc(c);
   float gate = (1. - smoothstep(.045, .11, length(y.yz - uRef.yz))) * smoothstep(.3, .55, y.x / max(uRef.x, .01));
-  float sm = clamp(gate * (mk.r*uAmt.x*.75 + mk.g*uAmt.y*.65 + mk.b*uAmt.z*.8), 0., .92);
+  float sm = clamp(gate * (mk.r*uAmt.x*.9 + mk.g*uAmt.y*.85 + mk.b*uAmt.z*1.), 0., .95);
   if (sm > .001) {
     vec3 acc = c; float ws = 1.;
     for (int i = 0; i < 20; i++) {
       float fi = float(i); float a = fi * 2.39996; float rr = sqrt((fi + .5) / 20.);
       vec2 o = vec2(cos(a), sin(a)) * rr * uSR / uSize;
       vec3 s = texture2D(uSrc, uv + o).rgb; vec3 dd = s - c;
-      float w = exp(-dot(dd,dd) * 45.); acc += s * w; ws += w;
+      float w = exp(-dot(dd,dd) * 28.); acc += s * w; ws += w;
     }
     c = mix(c, acc / ws, sm);
   }
-  float fb = gate * (mk.r*uAmt.x*.95 + mk.g*uAmt.y*.9);
-  float fm = gate * mk.b * uAmt.z * .7;
+  float fbR = gate * mk.r * uAmt.x, fbG = gate * mk.g * uAmt.y, fb = fbR + fbG;
+  float fm = gate * mk.b * uAmt.z;
   if (fb + fm > .001) {
+    vec3 big = texture2D(uBig, uv).rgb, mid = texture2D(uMid, uv).rgb;
+    // even out blotches and redness: swap mid-scale tone for the wide skin average, keep fine texture
+    c += (big - mid) * fm * .6;
     float L = luma(c);
-    float lb = luma(texture2D(uBig, uv).rgb), lm = luma(texture2D(uMid, uv).rgb);
-    float lift = max(lb - L, 0.) * fb + max(lm - L, 0.) * fm;
+    float lb = luma(big), lm = luma(mid);
+    // under-eye: also look at the cheek just below, which is the brightness a filled tear trough reaches
+    float le = max(lb, luma(texture2D(uBig, uv + uDown).rgb));
+    float lift = max(lb - L, 0.) * fbR + max(le - L, 0.) * fbG + max(lm - L, 0.) * fm * .9;
     c *= (L + lift) / max(L, .02);
+    c *= 1. + .05 * fm;
+    // eye bags / dark circles: pull the under-eye tint toward the surrounding skin
+    float tg = gate * mk.g * uAmt.y * .7;
+    vec3 a = ycc(c), b = ycc(big);
+    a.yz = mix(a.yz, b.yz, tg);
+    float rr = a.x + a.z / .713, bb = a.x + a.y / .564;
+    c = vec3(rr, (a.x - .299*rr - .114*bb) / .587, bb);
   }
   gl_FragColor = vec4(clamp(c, 0., 1.), 1.);
 }`;
@@ -348,7 +369,7 @@ function initGL() {
   const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
   const loc = gl.getAttribLocation(prog, "a"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  for (const n of ["uSrc","uMask","uMid","uBig","uSize","uMv","uVv","uN","uAmt","uRef","uSR","uSplit","uBefore"]) U[n] = gl.getUniformLocation(prog, n);
+  for (const n of ["uSrc","uMask","uMid","uBig","uSize","uMv","uVv","uN","uAmt","uRef","uSR","uSplit","uBefore","uDown"]) U[n] = gl.getUniformLocation(prog, n);
   ["uSrc","uMask","uMid","uBig"].forEach((n, i) => { gl.uniform1i(U[n], i); tex[n] = gl.createTexture(); });
   return true;
 }
@@ -360,7 +381,8 @@ function upload(name, unit, data, w, h) {
   for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
 }
 
-function amount(id) { return state.on[id] ? state.val[id] / 100 : 0; }
+// slightly convex: 30-50% stays natural, 100% is a clearly treated look
+function amount(id) { if (!state.on[id]) return 0; const a = state.val[id] / 100; return a * (.7 + .3 * a); }
 function draw({ before = false, split = -1, morph = 1 } = {}) {
   if (!state.img) return;
   if (!state.geom) {
@@ -379,6 +401,7 @@ function draw({ before = false, split = -1, morph = 1 } = {}) {
   gl.uniform3f(U.uAmt, amt("naso"), amt("eyebag"), amt("wrinkle"));
   gl.uniform3f(U.uRef, g.ref[0], g.ref[1], g.ref[2]);
   gl.uniform1f(U.uSR, g.smoothR);
+  gl.uniform2f(U.uDown, -g.up[0] * .06 * g.fH / state.W, -g.up[1] * .06 * g.fH / state.H);
   gl.uniform1f(U.uSplit, split);
   gl.uniform1f(U.uBefore, before ? 1 : 0);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -393,6 +416,7 @@ function render() {
     draw({ before: v === "before", split: v === "split" ? state.split * state.W : -1, morph: state.morph });
     $("tagL").hidden = !(v === "before" || v === "split");
     $("tagR").hidden = !(v === "after" || v === "split");
+    $("tagR").textContent = v === "after" ? "Simulated · hold to compare" : "Simulated";
     $("tagL").textContent = "Before";
     drawOverlay();
   });
@@ -411,7 +435,7 @@ function anchorsFromMesh(P) {
   };
 }
 function templateAnchors(W, H) {
-  const cx = W / 2, cy = H * .5, h = Math.min(H * .7, W * .9), s = h / 100;
+  const cx = W / 2, cy = H * .46, h = Math.min(H * .45, W * .75), s = h / 100;
   const at = (x, y) => [cx + x * s, cy + y * s];
   return {
     top: at(0, -50), chin: at(0, 50), root: at(0, -14), tip: at(0, 8), sub: at(0, 13),
@@ -435,28 +459,30 @@ function computeGeometry() {
   const lateral = (side) => { const d = sub(side, midMouth); return norm(sub(d, mul(up, dot(d, up)))); };
   const visible = (side) => { const d = sub(side, A.tip); return clamp((len(sub(d, mul(up, dot(d, up)))) / fH - .15) / .25, 0, 1); };
   const vis = { A: visible(A.sideA), B: visible(A.sideB) };
+  const vFar = clamp((.75 - turn) / .4, 0, 1);
+  const visSoft = { A: Math.max(vis.A, vFar), B: Math.max(vis.B, vFar) };
 
   const moves = [];
-  const mv = (t, c, r, v) => { const L = len(v), cap = .35 * r; moves.push({ t, c, r, v: L > cap ? mul(v, cap / L) : v }); };
+  const mv = (t, c, r, v) => { const L = len(v), cap = .5 * r; moves.push({ t, c, r, v: L > cap ? mul(v, cap / L) : v }); };
   // Nose tip: rotate up and project forward (forward only shows on angled views)
-  mv("tip", A.tip, .085 * fH, add(mul(up, .026 * fH), mul(fdir, .024 * fH * yaw)));
-  mv("tip", A.sub, .05 * fH, mul(up, .009 * fH));
-  for (const s of ["A", "B"]) mv("tip", A["ala" + s], .045 * fH, mul(norm(sub(A.tip, A["ala" + s])), .011 * fH * (1 - .6 * yaw) * vis[s]));
+  mv("tip", A.tip, .11 * fH, add(mul(up, .042 * fH), mul(fdir, .036 * fH * yaw)));
+  mv("tip", A.sub, .06 * fH, mul(up, .018 * fH));
+  for (const s of ["A", "B"]) mv("tip", A["ala" + s], .055 * fH, mul(norm(sub(A.tip, A["ala" + s])), .02 * fH * (1 - .6 * yaw) * vis[s]));
   // Bridge: raise the dorsum on angled views, slim the walls on front views
   const nAxis = norm(sub(A.tip, A.root)), nSide = [-nAxis[1], nAxis[0]];
-  for (const t of [.22, .45, .68]) mv("bridge", mix(A.root, A.tip, t), .075 * fH, mul(fdir, .016 * fH * yaw * Math.sin(Math.PI * (t * .8 + .1))));
+  for (const t of [.22, .45, .68]) mv("bridge", mix(A.root, A.tip, t), .08 * fH, mul(fdir, .032 * fH * yaw * Math.sin(Math.PI * (t * .8 + .1))));
   for (const t of [.4, .65, .85]) for (const sgn of [-1, 1]) {
     const c = add(mix(A.root, A.tip, t), mul(nSide, sgn * .055 * fH));
-    mv("bridge", c, .045 * fH, mul(nSide, -sgn * .008 * fH * (1 - yaw)));
+    mv("bridge", c, .05 * fH, mul(nSide, -sgn * .016 * fH * (1 - yaw)));
   }
   // Thread lift: jowls and mid-cheek pulled up and back toward the ear
   for (const s of ["A", "B"]) {
-    const lat = lateral(A["side" + s]), k = vis[s];
-    mv("lift", A["jowl" + s], .18 * fH, mul(add(mul(up, .032 * fH), mul(lat, .012 * fH)), k));
-    mv("lift", A["cheek" + s], .15 * fH, mul(add(mul(up, .016 * fH), mul(lat, .006 * fH)), k));
+    const lat = lateral(A["side" + s]), k = visSoft[s];
+    mv("lift", A["jowl" + s], .2 * fH, mul(add(mul(up, .06 * fH), mul(lat, .02 * fH)), k));
+    mv("lift", A["cheek" + s], .16 * fH, mul(add(mul(up, .03 * fH), mul(lat, .01 * fH)), k * vis[s]));
   }
   // Eye bags: slight upward tuck of the lower-lid fat pad
-  for (const s of ["A", "B"]) mv("eyebag", add(A["eye" + s], mul(up, -.045 * fH)), .05 * fH, mul(up, .006 * fH * vis[s]));
+  for (const s of ["A", "B"]) mv("eyebag", add(A["eye" + s], mul(up, -.045 * fH)), .055 * fH, mul(up, .012 * fH * visSoft[s]));
 
   // Masks (R folds, G under-eye, B skin) at half resolution
   const sc = .5, MW = Math.max(2, Math.round(W * sc)), MH = Math.max(2, Math.round(H * sc));
@@ -471,7 +497,7 @@ function computeGeometry() {
     const t0 = A["foldTop" + s], t1 = A["foldBot" + s];
     const out = mul(lateral(A["side" + s]), .012 * fH);
     const ctl = add(mix(t0, t1, .5), out);
-    xR.globalAlpha = vis[s]; xR.lineWidth = .05 * fH;
+    xR.globalAlpha = vis[s]; xR.lineWidth = .065 * fH;
     xR.beginPath(); xR.moveTo(t0[0], t0[1]); xR.quadraticCurveTo(ctl[0], ctl[1], t1[0], t1[1]); xR.stroke();
   }
   // G: under-eye band
@@ -482,8 +508,8 @@ function computeGeometry() {
     if (M) lid = pick(s === "A" ? LID_A : LID_B).map(p => add(p, s === "A" ? shiftA : shiftB));
     else { const e = A["eye" + s], w = .07 * fH, sd = [up[1], -up[0]]; lid = [-1, -.5, 0, .5, 1].map(k => add(add(e, mul(sd, k * w)), mul(up, Math.abs(k) * .012 * fH))); }
     const n = lid.length, topEdge = [], botEdge = [];
-    lid.forEach((p, i) => { const k = Math.sin(Math.PI * i / (n - 1)); topEdge.push(add(p, mul(down, (.006 + .008 * k) * fH))); botEdge.push(add(p, mul(down, (.012 + .06 * k) * fH))); });
-    xG.globalAlpha = vis[s]; path(xG, topEdge.concat(botEdge.reverse()), true); xG.fill();
+    lid.forEach((p, i) => { const k = Math.sin(Math.PI * i / (n - 1)); topEdge.push(add(p, mul(down, (.006 + .008 * k) * fH))); botEdge.push(add(p, mul(down, (.015 + .075 * k) * fH))); });
+    xG.globalAlpha = visSoft[s]; path(xG, topEdge.concat(botEdge.reverse()), true); xG.fill();
   }
   // B: facial skin minus eyes, brows, lips, nostrils
   const [cB, xB] = layer();
@@ -529,7 +555,8 @@ function computeGeometry() {
     const r = px[i*4]/255, g = px[i*4+1]/255, b = px[i*4+2]/255, y = .299*r + .587*g + .114*b;
     const d = Math.hypot((b - y) * .564 - ref[1], (r - y) * .713 - ref[2]);
     const gate = (1 - smooth(.045, .11, d)) * smooth(.3, .55, y / ref[0]);
-    const w = Math.min(1, chB[i] + chR[i] + chG[i]) * gate + 1e-4;
+    // the fold / under-eye bands are left out, so the blurs give the brightness of the skin AROUND them
+    const w = Math.min(1, chB[i] + chR[i] + chG[i]) * gate * (1 - .9 * Math.max(chR[i], chG[i])) + 1e-4;
     wgt[i] = w; cr[i] = r * w; cg[i] = g * w; cb[i] = b * w;
   }
   const makeBlur = (radius, unit, name) => {
@@ -544,10 +571,10 @@ function computeGeometry() {
     }
     upload(name, unit, out, MW, MH);
   };
-  makeBlur(Math.max(1, Math.round(.009 * pxs)), 2, "uMid");
-  makeBlur(Math.max(2, Math.round(.035 * pxs)), 3, "uBig");
+  makeBlur(Math.max(1, Math.round(.012 * pxs)), 2, "uMid");
+  makeBlur(Math.max(2, Math.round(.07 * pxs)), 3, "uBig");
 
-  state.geom = { moves, ref, smoothR: Math.max(2, .013 * fH), fH, yaw, turn, vis };
+  state.geom = { moves, ref, smoothR: Math.max(2, .02 * fH), fH, up, yaw, turn, vis };
 }
 function smooth(a, b, x) { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
 function catmull(pts, seg = 10) {
@@ -591,8 +618,9 @@ function drawOverlay() {
   if (v === "split") {
     const x = state.split * W;
     s += `<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="#fff" stroke-width="${2 * u}"/>`;
-    s += `<circle cx="${x}" cy="${H / 2}" r="${16 * u}" fill="#fff"/>`;
-    s += `<path d="M${x - 6 * u} ${H / 2 - 6 * u} l${-6 * u} ${6 * u} l${6 * u} ${6 * u} M${x + 6 * u} ${H / 2 - 6 * u} l${6 * u} ${6 * u} l${-6 * u} ${6 * u}" stroke="#222" stroke-width="${2 * u}" fill="none"/>`;
+    const hy = H - 30 * u; // handle near the bottom edge, off the face
+    s += `<circle cx="${x}" cy="${hy}" r="${16 * u}" fill="#fff"/>`;
+    s += `<path d="M${x - 6 * u} ${hy - 6 * u} l${-6 * u} ${6 * u} l${6 * u} ${6 * u} M${x + 6 * u} ${hy - 6 * u} l${6 * u} ${6 * u} l${-6 * u} ${6 * u}" stroke="#222" stroke-width="${2 * u}" fill="none"/>`;
   }
   if (state.showPoints && state.anchors) {
     const A = state.anchors;
@@ -678,25 +706,200 @@ $("btnPlay").onclick = () => {
   };
   requestAnimationFrame(tick);
 };
-$("btnAll").onclick = () => { TREATMENTS.forEach(t => { state.on[t.id] = true; syncRow(t.id); }); if (state.view === "before") setView("split"); render(); };
+$("btnAll").onclick = () => { TREATMENTS.forEach(t => { state.on[t.id] = true; syncRow(t.id); }); if (state.view === "before") setView("after"); render(); };
 $("btnReset").onclick = () => { TREATMENTS.forEach(t => { state.on[t.id] = false; state.val[t.id] = t.def; $("sl-" + t.id).value = t.def; syncRow(t.id); }); if (state.mesh) { state.anchors = structuredClone(state.meshAnchors); computeGeometry(); } render(); };
 
+const withTimeout = (p, ms, what) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(what + " took too long")), ms))]);
+
 /* ---------- face engine ---------- */
+// Main engine: MediaPipe Face Landmarker (WebAssembly). Some viewers forbid WebAssembly,
+// so a TF.js engine on WebGL (same 478-point indexing) takes over there.
+const wasmAllowed = (() => { try { new WebAssembly.Module(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0])); return true; } catch { return false; } })();
 let enginePromise = null, engineReady = false;
+async function loadMediaPipe() {
+  const [{ FaceLandmarker }, model] = await Promise.all([
+    import(`${TASKS}/vision_bundle.mjs`),
+    // model ships base64-encoded as text, since artifacts only serve web file types
+    fetch("face_landmarker.txt").then(r => { if (!r.ok) throw new Error("model " + r.status); return r.text(); })
+      .then(b64 => { const bin = atob(b64.trim()), out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }),
+  ]);
+  const fl = await FaceLandmarker.createFromOptions(
+    { wasmLoaderPath: `${TASKS}/wasm/vision_wasm_internal.js`, wasmBinaryPath: "vision_wasm_internal.wasm" },
+    { baseOptions: { modelAssetBuffer: model, delegate: "CPU" }, runningMode: "IMAGE", numFaces: 1, minFaceDetectionConfidence: .3, minFacePresenceConfidence: .3 });
+  return { name: "mediapipe", detect: async (c) => { const r = fl.detect(c); return r.faceLandmarks && r.faceLandmarks.length ? r.faceLandmarks[0].map(p => [p.x * c.width, p.y * c.height]) : null; } };
+}
+async function loadTfjsEngine() { await loadTfjsFace(); return { name: "tfjs", detect: detectWithTfjs }; }
 function loadEngine() {
   if (enginePromise) return enginePromise;
   enginePromise = (async () => {
-    const [{ FaceLandmarker }, model] = await Promise.all([
-      import(`${TASKS}/vision_bundle.mjs`),
-      // model ships base64-encoded as text, since artifacts only serve web file types
-      fetch("face_landmarker.txt").then(r => { if (!r.ok) throw new Error("model " + r.status); return r.text(); })
-        .then(b64 => { const bin = atob(b64.trim()), out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }),
-    ]);
-    return FaceLandmarker.createFromOptions(
-      { wasmLoaderPath: `${TASKS}/wasm/vision_wasm_internal.js`, wasmBinaryPath: "vision_wasm_internal.wasm" },
-      { baseOptions: { modelAssetBuffer: model, delegate: "CPU" }, runningMode: "IMAGE", numFaces: 1, minFaceDetectionConfidence: .3, minFacePresenceConfidence: .3 });
+    if (wasmAllowed) { try { return await withTimeout(loadMediaPipe(), 30000, "Loading the main face engine"); } catch (e) { console.warn("MediaPipe unavailable, using TF.js", e); } }
+    return loadTfjsEngine();
   })();
+  enginePromise.then(() => { engineReady = true; }, () => { enginePromise = null; });
   return enginePromise;
+}
+
+/* ---------- TF.js face-mesh fallback (no WebAssembly, no eval) ----------
+ * BlazeFace (256, MediaPipe "back" detector) + MediaPipe Attention Mesh (192x192: 468-pt mesh
+ * plus refined lips/eyes and 2x5 iris points), as TF.js graph models (converted by vladmandic,
+ * from @vladmandic/human-models@3.0.4), run on the WebGL backend (CPU backend as last resort).
+ * Returns 478 [x, y] points in canvas pixels with the same indexing as tasks-vision FaceLandmarker.
+ *
+ * Needs, published next to the page: fm-blazeface.json, fm-attention.json
+ * (topology + base64 weights in one JSON each, so no .bin files are needed).
+ * Loads: https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.es2017.min.js (UMD, sets window.tf)
+ */
+const TFJS_URL = "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.es2017.min.js";
+const TFJS_FACE_MODELS = { det: "fm-blazeface.json", mesh: "fm-attention.json" };
+let tfjsFacePromise = null;
+
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    if (window.tf && window.tf.loadGraphModel) return resolve();
+    const s = document.createElement("script");
+    s.src = src; s.async = true; s.crossOrigin = "anonymous";
+    s.onload = () => resolve(); s.onerror = () => reject(new Error("could not load " + src));
+    document.head.appendChild(s);
+  });
+}
+
+async function loadTfjsGraph(tf, url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(url + " " + r.status);
+  const j = await r.json();
+  const bin = atob(j.weightsB64), buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return tf.loadGraphModel(tf.io.fromMemory({
+    modelTopology: j.modelTopology, weightSpecs: j.weightSpecs, weightData: buf.buffer,
+    format: j.format, generatedBy: j.generatedBy, convertedBy: j.convertedBy,
+    signature: j.signature, userDefinedMetadata: j.userDefinedMetadata,
+  }));
+}
+
+function loadTfjsFace() {
+  if (tfjsFacePromise) return tfjsFacePromise;
+  tfjsFacePromise = (async () => {
+    await loadScriptOnce(TFJS_URL);
+    const tf = window.tf;
+    // allow software-rendered WebGL (blocklisted GPUs, SwiftShader) instead of failing over to the slow CPU backend
+    try { tf.env().set("SOFTWARE_WEBGL_ENABLED", true); } catch {}
+    let backend = null;
+    for (const b of ["webgl", "cpu"]) {
+      try { if (await tf.setBackend(b)) { await tf.ready(); backend = b; break; } } catch (e) { console.warn("tfjs backend " + b, e); }
+    }
+    if (!backend) throw new Error("no TF.js backend");
+    const [det, mesh] = await Promise.all([loadTfjsGraph(tf, TFJS_FACE_MODELS.det), loadTfjsGraph(tf, TFJS_FACE_MODELS.mesh)]);
+    // BlazeFace anchors: 16x16 grid x2 (stride 16) then 8x8 grid x6 (stride 32), in 256-px units
+    const anchors = [];
+    for (const [stride, n] of [[16, 2], [32, 6]]) {
+      const g = 256 / stride;
+      for (let y = 0; y < g; y++) for (let x = 0; x < g; x++) for (let k = 0; k < n; k++) anchors.push([stride * (x + .5), stride * (y + .5)]);
+    }
+    // warm-up so the first real call doesn't pay for shader compilation twice
+    tf.tidy(() => { det.execute(tf.zeros([1, 256, 256, 3])); mesh.execute(tf.zeros([1, 192, 192, 3])); });
+    return { tf, det, mesh, anchors, backend };
+  })();
+  tfjsFacePromise.catch(() => { tfjsFacePromise = null; });
+  return tfjsFacePromise;
+}
+
+async function tfjsRunDetector(E, src, W, H) {
+  const { tf, det, anchors } = E;
+  const S = Math.max(W, H), k = 256 / S;
+  const c = document.createElement("canvas"); c.width = c.height = 256;
+  const x = c.getContext("2d"); x.fillStyle = "#000"; x.fillRect(0, 0, 256, 256);
+  x.drawImage(src, 0, 0, W * k, H * k); // letterbox, top-left
+  const outs = tf.tidy(() => {
+    const inp = tf.browser.fromPixels(c).toFloat().div(127.5).sub(1).expandDims(0);
+    const r = det.execute(inp);
+    const by = (n, d) => r.find(t => t.shape[1] === n && t.shape[2] === d);
+    return [by(512, 1), by(384, 1), by(512, 16), by(384, 16)];
+  });
+  const [s512, s384, r512, r384] = await Promise.all(outs.map(t => t.data()));
+  outs.forEach(t => t.dispose());
+  const scores = [...s512, ...s384].map(v => 1 / (1 + Math.exp(-Math.max(-80, Math.min(80, v)))));
+  const reg = (i) => i < 512 ? r512.subarray(i * 16, i * 16 + 16) : r384.subarray((i - 512) * 16, (i - 512) * 16 + 16);
+  const cand = [];
+  for (let i = 0; i < 896; i++) if (scores[i] > 0.3) {
+    const g = reg(i), [ax, ay] = anchors[i];
+    const cx = (ax + g[0]) / k, cy = (ay + g[1]) / k, w = g[2] / k, h = g[3] / k;
+    const kp = []; for (let j = 0; j < 6; j++) kp.push([(ax + g[4 + 2 * j]) / k, (ay + g[5 + 2 * j]) / k]);
+    cand.push({ s: scores[i], x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2, kp });
+  }
+  if (!cand.length) return null;
+  cand.sort((a, b) => b.s - a.s);
+  const best = cand[0];
+  const iou = (a, b) => { const ix = Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)), iy = Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0)), I = ix * iy; return I / ((a.x1 - a.x0) * (a.y1 - a.y0) + (b.x1 - b.x0) * (b.y1 - b.y0) - I); };
+  // weighted NMS around the best box (as MediaPipe does)
+  const grp = cand.filter(d => iou(best, d) > 0.3); let ws = 0;
+  const m = { s: best.s, x0: 0, y0: 0, x1: 0, y1: 0, kp: best.kp.map(() => [0, 0]) };
+  for (const d of grp) { ws += d.s; for (const key of ["x0", "y0", "x1", "y1"]) m[key] += d[key] * d.s; d.kp.forEach((p, j) => { m.kp[j][0] += p[0] * d.s; m.kp[j][1] += p[1] * d.s; }); }
+  for (const key of ["x0", "y0", "x1", "y1"]) m[key] /= ws; m.kp.forEach(p => { p[0] /= ws; p[1] /= ws; });
+  return m;
+}
+
+async function tfjsRunMesh(E, src, roi) {
+  const { tf, mesh } = E, N = 192;
+  const { cx, cy, size, rot } = roi, sc = size / N, co = Math.cos(rot), si = Math.sin(rot);
+  const c = document.createElement("canvas"); c.width = c.height = N;
+  const x = c.getContext("2d"); x.fillStyle = "#000"; x.fillRect(0, 0, N, N);
+  x.imageSmoothingEnabled = true; x.imageSmoothingQuality = "high";
+  const a = co / sc, cc = si / sc, b = -si / sc, d = co / sc;
+  x.setTransform(a, b, cc, d, N / 2 - (a * cx + cc * cy), N / 2 - (b * cx + d * cy));
+  x.drawImage(src, 0, 0);
+  const outs = tf.tidy(() => {
+    const r = mesh.execute(tf.browser.fromPixels(c).toFloat().div(255).expandDims(0));
+    const L = n => r.filter(t => t.shape[t.shape.length - 1] === n);
+    return [L(1404)[0], L(1)[0], L(160)[0], ...L(142), ...L(10)]; // mesh, flag, lips, 2 eyes, 2 irises
+  });
+  const [m, f, lips, eA, eB, iA, iB] = await Promise.all(outs.map(t => t.data()));
+  outs.forEach(t => t.dispose());
+  const raw = []; for (let i = 0; i < 468; i++) raw.push([m[i * 3], m[i * 3 + 1]]);
+  // refined sub-meshes replace mesh points (MediaPipe "landmarks refinement"); which eye/iris head is which is decided by distance to point 33
+  const near33 = e => Math.hypot(e[0] - raw[33][0], e[1] - raw[33][1]);
+  const [eR, eL] = near33(eA) < near33(eB) ? [eA, eB] : [eB, eA];
+  const [iR, iL] = near33(iA) < near33(iB) ? [iA, iB] : [iB, iA];
+  TFJS_REFINE.lips.forEach((k, i) => raw[k] = [lips[2 * i], lips[2 * i + 1]]);
+  TFJS_REFINE.eye33.forEach((k, i) => raw[k] = [eR[2 * i], eR[2 * i + 1]]);
+  TFJS_REFINE.eye263.forEach((k, i) => raw[k] = [eL[2 * i], eL[2 * i + 1]]);
+  for (let i = 0; i < 5; i++) raw.push([iR[2 * i], iR[2 * i + 1]]); // 468-472
+  for (let i = 0; i < 5; i++) raw.push([iL[2 * i], iL[2 * i + 1]]); // 473-477
+  const pts = raw.map(([px, py]) => {
+    const u = (px - N / 2) * sc, v = (py - N / 2) * sc;
+    return [cx + co * u - si * v, cy + si * u + co * v];
+  });
+  return { pts, flag: f[0] };
+}
+
+const TFJS_REFINE = {
+  lips: [61,146,91,181,84,17,314,405,321,375,291,185,40,39,37,0,267,269,270,409,78,95,88,178,87,14,317,402,318,324,308,191,80,81,82,13,312,311,310,415,76,77,90,180,85,16,315,404,320,307,306,184,74,73,72,11,302,303,304,408,62,96,89,179,86,15,316,403,319,325,292,183,42,41,38,12,268,271,272,407],
+  eye33: [33,7,163,144,145,153,154,155,133,246,161,160,159,158,157,173,130,25,110,24,23,22,26,112,243,247,30,29,27,28,56,190,226,31,228,229,230,231,232,233,244,113,225,224,223,222,221,189,35,124,46,53,52,65,143,111,117,118,119,120,121,128,245,156,70,63,105,66,107,55,193],
+  eye263: [263,249,390,373,374,380,381,382,362,466,388,387,386,385,384,398,359,255,339,254,253,252,256,341,463,467,260,259,257,258,286,414,446,261,448,449,450,451,452,453,464,342,445,444,443,442,441,413,265,353,276,283,282,295,372,340,346,347,348,349,350,357,465,383,300,293,334,296,336,285,417],
+};
+
+function tfjsRoiFromMesh(P) {
+  const rot = Math.atan2(P[263][1] - P[33][1], P[263][0] - P[33][0]);
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const [x, y] of P.slice(0, 468)) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, size: Math.max(x1 - x0, y1 - y0) * 1.5, rot };
+}
+
+/** canvas (or any drawable with width/height) -> Promise<Array<[x,y]> (478) | null> */
+async function detectWithTfjs(canvas) {
+  const E = await loadTfjsFace();
+  const W = canvas.width, H = canvas.height;
+  const d = await tfjsRunDetector(E, canvas, W, H);
+  if (!d) return null;
+  // detection -> ROI: box centre, 1.5x longest side, rotated so the eye line (kp0 -> kp1) is level
+  let roi = { cx: (d.x0 + d.x1) / 2, cy: (d.y0 + d.y1) / 2, size: Math.max(d.x1 - d.x0, d.y1 - d.y0) * 1.5,
+              rot: Math.atan2(d.kp[1][1] - d.kp[0][1], d.kp[1][0] - d.kp[0][0]) };
+  let res = null;
+  for (let pass = 0; pass < 3; pass++) { // pass 0 from detector, then refine ROI from the mesh itself
+    const r = await tfjsRunMesh(E, canvas, roi);
+    if (r.flag < 0.3) { if (!res) return null; break; }
+    res = r; roi = tfjsRoiFromMesh(r.pts);
+  }
+  return res.pts;
 }
 
 /* ---------- loading a photo ---------- */
@@ -710,7 +913,6 @@ async function decodePhoto(file) {
     return null;
   } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
 }
-const withTimeout = (p, ms, what) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(what + " took too long")), ms))]);
 async function loadFile(file) {
   if (!file) return;
   setStatus("Opening the photo…", "busy");
@@ -727,23 +929,29 @@ async function loadFile(file) {
   const c = document.createElement("canvas"); c.width = W; c.height = H; c.getContext("2d").drawImage(ph.src, 0, 0, W, H);
   Object.assign(state, { img: c, W, H, mesh: null, anchors: null, geom: null, split: .5, morph: 1, engineError: null });
   canvas.width = W; canvas.height = H;
-  $("empty").hidden = true; $("frame").hidden = false;
+  setView("after");
+  $("empty").hidden = true; $("frame").hidden = false; document.querySelector(".stage-wrap").classList.add("has-photo");
   upload("uSrc", 0, c);
   render();
-  setStatus(engineReady ? "Finding the face…" : "Photo loaded. Loading the face engine (about 14 MB the first time)…", "busy");
+  setStatus(engineReady ? "Finding the face…" : "Photo loaded. Loading the face engine (the first time takes a little while)…", "busy");
   let P = null;
   try {
-    const fl = await withTimeout(loadEngine(), 45000, "Loading the face engine");
+    let eng = await withTimeout(loadEngine(), 60000, "Loading the face engine");
     setStatus("Finding the face…", "busy");
-    const r = fl.detect(c);
-    if (r.faceLandmarks && r.faceLandmarks.length) P = r.faceLandmarks[0].map(p => [p.x * W, p.y * H]);
+    try { P = await eng.detect(c); }
+    catch (e) {
+      if (eng.name !== "mediapipe") throw e;
+      console.warn("MediaPipe detect failed, switching to TF.js", e);
+      enginePromise = loadTfjsEngine(); eng = await withTimeout(enginePromise, 60000, "Loading the backup face engine");
+      P = await eng.detect(c);
+    }
   } catch (err) { console.warn(err); state.engineError = String(err && err.message || err).slice(0, 120); }
   if (state.img !== c) return; // a newer photo was chosen meanwhile
   if (P) {
     state.mesh = P; state.meshAnchors = anchorsFromMesh(P); state.anchors = structuredClone(state.meshAnchors);
     computeGeometry();
     const view = state.geom.turn > .6 ? "side view" : state.geom.turn > .12 ? "angled view" : "front view";
-    setStatus(`Face found (${view}). Turn on a treatment to see it. Use Adjust points if a marker is off.`, "ok");
+    setStatus(`Face found (${view}). Turn on a treatment, then press and hold the photo to compare with Before.`, "ok");
   } else {
     state.anchors = templateAnchors(W, H); computeGeometry();
     setPoints(true);
@@ -847,6 +1055,6 @@ $("btnSaveVid").onclick = async () => {
 window.addEventListener("resize", render);
 buildPanel();
 if (!initGL()) setStatus("This browser has WebGL turned off, which the simulator needs. Try Chrome or Safari.", "warn");
-else { setStatus("Loading the face engine…", "busy"); loadEngine().then(() => { engineReady = true; if (!state.img) setStatus("Face engine ready. Choose a client photo to begin.", "ok"); }).catch((err) => { enginePromise = null; if (!state.img) setStatus(`Automatic face finding is unavailable here (${String(err && err.message || err).slice(0, 120)}). You can still load a photo and place the points by hand.`, "warn"); }); }
+else { setStatus("Loading the face engine…", "busy"); loadEngine().then(() => { if (!state.img) setStatus("Face engine ready. Choose a client photo to begin.", "ok"); }).catch((err) => { if (!state.img) setStatus(`Automatic face finding is unavailable here (${String(err && err.message || err).slice(0, 120)}). You can still load a photo and place the points by hand.`, "warn"); }); }
 window.__sim = { state, loadFile, setOn, setView, computeGeometry, render };
 </script>
