@@ -43,7 +43,8 @@ body {
   padding-block: 18px 28px;
 }
 button, input { font: inherit; color: inherit; }
-button { cursor: pointer; }
+button, label.btn { cursor: pointer; }
+.vh { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip: rect(0 0 0 0); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 20px; max-width: 1280px; margin: 0 auto 16px; }
@@ -117,10 +118,10 @@ button { cursor: pointer; }
     <p>Show a client a preview of nose, fold, lift, wrinkle and eye-bag treatments on her own photo.</p>
   </div>
   <div class="actions">
-    <button class="btn primary" id="btnUpload" type="button">
+    <label class="btn primary" for="file" id="btnUpload" role="button" tabindex="0">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>
       Choose photo
-    </button>
+    </label>
     <button class="btn" id="btnSaveImg" type="button" disabled>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 5v14"/></svg>
       Save before/after
@@ -129,7 +130,7 @@ button { cursor: pointer; }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M17 10l4-2v8l-4-2"/></svg>
       Save morph video
     </button>
-    <input type="file" id="file" accept="image/*" hidden>
+    <input type="file" id="file" accept="image/*" class="vh">
   </div>
 </header>
 
@@ -146,7 +147,7 @@ button { cursor: pointer; }
         </svg>
         <h2>Start with a client photo</h2>
         <p>Front, 45° or side view, face well lit and not covered by hair. Drop the photo here, paste it, or choose a file. The photo stays on this device.</p>
-        <button class="btn primary" id="btnUpload2" type="button">Choose photo</button>
+        <label class="btn primary" for="file" id="btnUpload2" role="button" tabindex="0">Choose photo</label>
       </div>
       <div class="frame" id="frame" hidden>
         <canvas id="gl"></canvas>
@@ -361,7 +362,11 @@ function upload(name, unit, data, w, h) {
 
 function amount(id) { return state.on[id] ? state.val[id] / 100 : 0; }
 function draw({ before = false, split = -1, morph = 1 } = {}) {
-  if (!state.geom) return;
+  if (!state.img) return;
+  if (!state.geom) {
+    gl.viewport(0, 0, state.W, state.H); gl.uniform2f(U.uSize, state.W, state.H);
+    gl.uniform1i(U.uN, 0); gl.uniform1f(U.uBefore, 1); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); return;
+  }
   const g = state.geom;
   const amt = (id) => amount(id) * morph;
   const moves = [];
@@ -383,7 +388,7 @@ function render() {
   if (raf) return;
   raf = requestAnimationFrame(() => {
     raf = 0;
-    if (!state.geom) return;
+    if (!state.img) return;
     const v = state.holdBefore ? "before" : state.view;
     draw({ before: v === "before", split: v === "split" ? state.split * state.W : -1, morph: state.morph });
     $("tagL").hidden = !(v === "before" || v === "split");
@@ -576,6 +581,7 @@ function blur(a, w, h, r) {
 /* ---------- overlay: split handle + adjustable points ---------- */
 const svg = $("overlay");
 function drawOverlay() {
+  if (!state.geom) { svg.innerHTML = ""; return; }
   const W = state.W, H = state.H;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("preserveAspectRatio", "none");
@@ -644,13 +650,14 @@ function setView(v) {
 $("vBefore").onclick = () => setView("before");
 $("vSplit").onclick = () => setView("split");
 $("vAfter").onclick = () => setView("after");
-$("btnPoints").onclick = () => {
-  state.showPoints = !state.showPoints;
+$("btnPoints").onclick = () => setPoints(!state.showPoints);
+function setPoints(on) {
+  state.showPoints = on;
   $("btnPoints").setAttribute("aria-pressed", state.showPoints);
   $("btnPoints").textContent = state.showPoints ? "Done adjusting" : "Adjust points";
   if (state.showPoints) setStatus("Drag the yellow points onto the right spots: nose tip, fold lines, jowls, lower lids.", "");
   render();
-};
+}
 const ease = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 // one cycle: hold before, morph in, hold after, morph out
 function morphAt(t, period = 4) {
@@ -675,7 +682,7 @@ $("btnAll").onclick = () => { TREATMENTS.forEach(t => { state.on[t.id] = true; s
 $("btnReset").onclick = () => { TREATMENTS.forEach(t => { state.on[t.id] = false; state.val[t.id] = t.def; $("sl-" + t.id).value = t.def; syncRow(t.id); }); if (state.mesh) { state.anchors = structuredClone(state.meshAnchors); computeGeometry(); } render(); };
 
 /* ---------- face engine ---------- */
-let enginePromise = null;
+let enginePromise = null, engineReady = false;
 function loadEngine() {
   if (enginePromise) return enginePromise;
   enginePromise = (async () => {
@@ -693,26 +700,45 @@ function loadEngine() {
 }
 
 /* ---------- loading a photo ---------- */
-async function loadFile(file) {
-  if (!file || !file.type.startsWith("image/")) { setStatus("That file is not a photo. Choose a JPG, PNG or HEIC image.", "warn"); return; }
+async function decodePhoto(file) {
   const url = URL.createObjectURL(file);
-  const im = new Image(); im.src = url;
-  try { await im.decode(); } catch { setStatus("This photo format can't be opened here. Export it as JPG and try again.", "warn"); return; }
-  const k = Math.min(1, MAX_SIDE / Math.max(im.naturalWidth, im.naturalHeight), (gl ? gl.getParameter(gl.MAX_TEXTURE_SIZE) : 4096) / Math.max(im.naturalWidth, im.naturalHeight));
-  const W = Math.round(im.naturalWidth * k), H = Math.round(im.naturalHeight * k);
-  const c = document.createElement("canvas"); c.width = W; c.height = H; c.getContext("2d").drawImage(im, 0, 0, W, H);
-  URL.revokeObjectURL(url);
-  Object.assign(state, { img: c, W, H, mesh: null, anchors: null, geom: null, split: .5, morph: 1 });
+  try {
+    const im = new Image(); im.src = url; await im.decode();
+    return { src: im, w: im.naturalWidth, h: im.naturalHeight };
+  } catch {
+    if (window.createImageBitmap) { try { const bm = await createImageBitmap(file); return { src: bm, w: bm.width, h: bm.height }; } catch {} }
+    return null;
+  } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+}
+const withTimeout = (p, ms, what) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(what + " took too long")), ms))]);
+async function loadFile(file) {
+  if (!file) return;
+  setStatus("Opening the photo…", "busy");
+  const ph = await decodePhoto(file);
+  if (!ph || !ph.w) {
+    const heic = /heic|heif/i.test(file.type + file.name);
+    setStatus(heic ? "This iPhone HEIC photo can't be opened in this browser. Take a screenshot of it, or set Camera > Formats > Most Compatible, then try again."
+                   : "This file couldn't be opened as a photo. Try a JPG or PNG.", "warn");
+    return;
+  }
+  const maxTex = gl ? gl.getParameter(gl.MAX_TEXTURE_SIZE) : 4096;
+  const k = Math.min(1, MAX_SIDE / Math.max(ph.w, ph.h), maxTex / Math.max(ph.w, ph.h));
+  const W = Math.round(ph.w * k), H = Math.round(ph.h * k);
+  const c = document.createElement("canvas"); c.width = W; c.height = H; c.getContext("2d").drawImage(ph.src, 0, 0, W, H);
+  Object.assign(state, { img: c, W, H, mesh: null, anchors: null, geom: null, split: .5, morph: 1, engineError: null });
   canvas.width = W; canvas.height = H;
   $("empty").hidden = true; $("frame").hidden = false;
   upload("uSrc", 0, c);
-  setStatus("Finding the face…", "busy");
+  render();
+  setStatus(engineReady ? "Finding the face…" : "Photo loaded. Loading the face engine (about 14 MB the first time)…", "busy");
   let P = null;
   try {
-    const fl = await loadEngine();
+    const fl = await withTimeout(loadEngine(), 45000, "Loading the face engine");
+    setStatus("Finding the face…", "busy");
     const r = fl.detect(c);
     if (r.faceLandmarks && r.faceLandmarks.length) P = r.faceLandmarks[0].map(p => [p.x * W, p.y * H]);
-  } catch (err) { console.warn(err); state.engineError = true; }
+  } catch (err) { console.warn(err); state.engineError = String(err && err.message || err).slice(0, 120); }
+  if (state.img !== c) return; // a newer photo was chosen meanwhile
   if (P) {
     state.mesh = P; state.meshAnchors = anchorsFromMesh(P); state.anchors = structuredClone(state.meshAnchors);
     computeGeometry();
@@ -720,16 +746,16 @@ async function loadFile(file) {
     setStatus(`Face found (${view}). Turn on a treatment to see it. Use Adjust points if a marker is off.`, "ok");
   } else {
     state.anchors = templateAnchors(W, H); computeGeometry();
-    if (!state.showPoints) $("btnPoints").click();
+    setPoints(true);
     setStatus(state.engineError
-      ? "Automatic face finding is unavailable here. Drag the yellow points onto the face, then turn on treatments."
+      ? `Automatic face finding didn't work here (${state.engineError}). Drag the yellow points onto the face, then turn on treatments.`
       : "No face found automatically (common for full side profiles). Drag the yellow points onto the face, then turn on treatments.", "warn");
   }
   $("panel").setAttribute("aria-disabled", "false");
   for (const id of ["btnSaveImg", "btnSaveVid", "btnPlay", "btnPoints"]) $(id).disabled = false;
   render();
 }
-$("btnUpload").onclick = $("btnUpload2").onclick = () => $("file").click();
+for (const id of ["btnUpload", "btnUpload2"]) $(id).addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
 $("file").onchange = (e) => { loadFile(e.target.files[0]); e.target.value = ""; };
 const stage = $("stage");
 stage.addEventListener("dragover", (e) => { e.preventDefault(); stage.classList.add("drag"); });
@@ -809,6 +835,6 @@ $("btnSaveVid").onclick = async () => {
 window.addEventListener("resize", render);
 buildPanel();
 if (!initGL()) setStatus("This browser has WebGL turned off, which the simulator needs. Try Chrome or Safari.", "warn");
-else { setStatus("Loading the face engine…", "busy"); loadEngine().then(() => { if (!state.img) setStatus("Face engine ready. Choose a client photo to begin.", "ok"); }).catch(() => { if (!state.img) setStatus("Automatic face finding is unavailable here; you can still place the points by hand.", "warn"); }); }
+else { setStatus("Loading the face engine…", "busy"); loadEngine().then(() => { engineReady = true; if (!state.img) setStatus("Face engine ready. Choose a client photo to begin.", "ok"); }).catch((err) => { enginePromise = null; if (!state.img) setStatus(`Automatic face finding is unavailable here (${String(err && err.message || err).slice(0, 120)}). You can still load a photo and place the points by hand.`, "warn"); }); }
 window.__sim = { state, loadFile, setOn, setView, computeGeometry, render };
 </script>
