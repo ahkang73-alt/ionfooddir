@@ -201,7 +201,7 @@ button, label.btn { cursor: pointer; }
 
 <script type="module">
 const TASKS = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
-const MAX_SIDE = 1600, MAX_MOVES = 24;
+const MAX_SIDE = 1600, MAX_MOVES = 32;
 
 const TREATMENTS = [
   { id: "tip",     name: "Nose tip lift",       zone: "Tip projection and rotation · thread / filler", def: 60 },
@@ -227,7 +227,7 @@ const ANCHOR_INFO = {
   top: "Forehead top", chin: "Chin", root: "Nose root", tip: "Nose tip", sub: "Under nose",
   alaA: "Nose wing", alaB: "Nose wing", mouthA: "Mouth corner", mouthB: "Mouth corner",
   foldTopA: "Fold start", foldBotA: "Fold end", foldTopB: "Fold start", foldBotB: "Fold end",
-  eyeA: "Lower lid", eyeB: "Lower lid", jowlA: "Jowl", jowlB: "Jowl", cheekA: "Cheek", cheekB: "Cheek",
+  eyeA: "Lower lid", eyeB: "Lower lid", jowlA: "Jowl", jowlB: "Jowl", jawA: "Jaw angle", jawB: "Jaw angle", cheekA: "Cheek", cheekB: "Cheek",
   sideA: "Face edge", sideB: "Face edge",
 };
 
@@ -300,7 +300,7 @@ const gl = canvas.getContext("webgl", { preserveDrawingBuffer: true, premultipli
 const VS = `attribute vec2 a; varying vec2 vUv; void main(){ vUv = vec2((a.x+1.)*.5, (1.-a.y)*.5); gl_Position = vec4(a,0.,1.); }`;
 const FS = `precision highp float;
 varying vec2 vUv;
-uniform sampler2D uSrc, uMask, uMid, uBig;
+uniform sampler2D uSrc, uMask, uMid, uBig, uNose;
 uniform vec2 uSize;
 uniform vec4 uMv[${MAX_MOVES}];
 uniform vec2 uVv[${MAX_MOVES}];
@@ -309,16 +309,18 @@ uniform vec3 uAmt;
 uniform vec3 uRef;
 uniform float uSR, uSplit, uBefore;
 uniform vec2 uDown;
+uniform vec2 uNoseAmt;
 float luma(vec3 c){ return dot(c, vec3(.299,.587,.114)); }
 vec3 ycc(vec3 c){ float y = luma(c); return vec3(y, (c.b-y)*.564, (c.r-y)*.713); }
 void main(){
   vec2 p = vUv * uSize;
   if (uBefore > .5 || p.x < uSplit) { gl_FragColor = vec4(texture2D(uSrc, vUv).rgb, 1.); return; }
   vec2 q = p;
+  float inside = texture2D(uMask, vUv).a;
   for (int i = 0; i < ${MAX_MOVES}; i++) {
     if (i >= uN) break;
     vec4 m = uMv[i]; vec2 d = p - m.xy; float t = dot(d,d) / (m.z*m.z);
-    if (t < 1.) { float w = 1. - t; q -= uVv[i] * w * w; }
+    if (t < 1.) { float w = 1. - t; q -= uVv[i] * w * w * mix(1., inside, m.w); }
   }
   vec2 uv = q / uSize;
   vec3 c = texture2D(uSrc, uv).rgb;
@@ -356,6 +358,14 @@ void main(){
     float rr = a.x + a.z / .713, bb = a.x + a.y / .564;
     c = vec3(rr, (a.x - .299*rr - .114*bb) / .587, bb);
   }
+  // nose contour: brighter dorsum line and tip, deeper side-wall shade read as a higher, finer nose
+  vec3 ns = texture2D(uNose, uv).rgb;
+  float ng = gate * (ns.r + ns.g + ns.b);
+  if (ng > .001) {
+    float hl = gate * (ns.r * uNoseAmt.x * .16 + ns.b * uNoseAmt.y * .12);
+    c += (1. - c) * hl;
+    c *= 1. - gate * ns.g * uNoseAmt.x * .16;
+  }
   gl_FragColor = vec4(clamp(c, 0., 1.), 1.);
 }`;
 let prog, U = {}, tex = {};
@@ -369,8 +379,8 @@ function initGL() {
   const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
   const loc = gl.getAttribLocation(prog, "a"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  for (const n of ["uSrc","uMask","uMid","uBig","uSize","uMv","uVv","uN","uAmt","uRef","uSR","uSplit","uBefore","uDown"]) U[n] = gl.getUniformLocation(prog, n);
-  ["uSrc","uMask","uMid","uBig"].forEach((n, i) => { gl.uniform1i(U[n], i); tex[n] = gl.createTexture(); });
+  for (const n of ["uSrc","uMask","uMid","uBig","uNose","uSize","uMv","uVv","uN","uAmt","uRef","uSR","uSplit","uBefore","uDown","uNoseAmt"]) U[n] = gl.getUniformLocation(prog, n);
+  ["uSrc","uMask","uMid","uBig","uNose"].forEach((n, i) => { gl.uniform1i(U[n], i); tex[n] = gl.createTexture(); });
   return true;
 }
 function upload(name, unit, data, w, h) {
@@ -392,13 +402,14 @@ function draw({ before = false, split = -1, morph = 1 } = {}) {
   const g = state.geom;
   const amt = (id) => amount(id) * morph;
   const moves = [];
-  for (const m of g.moves) { const a = amt(m.t); if (a > 0) moves.push({ c: m.c, r: m.r, v: mul(m.v, a) }); }
+  for (const m of g.moves) { const a = amt(m.t); if (a > 0) moves.push({ c: m.c, r: m.r, v: mul(m.v, a), inside: m.inside }); }
   const mv = new Float32Array(MAX_MOVES * 4), vv = new Float32Array(MAX_MOVES * 2);
-  moves.slice(0, MAX_MOVES).forEach((m, i) => { mv.set([m.c[0], m.c[1], m.r, 0], i * 4); vv.set(m.v, i * 2); });
+  moves.slice(0, MAX_MOVES).forEach((m, i) => { mv.set([m.c[0], m.c[1], m.r, m.inside], i * 4); vv.set(m.v, i * 2); });
   gl.viewport(0, 0, state.W, state.H);
   gl.uniform2f(U.uSize, state.W, state.H);
   gl.uniform4fv(U.uMv, mv); gl.uniform2fv(U.uVv, vv); gl.uniform1i(U.uN, Math.min(moves.length, MAX_MOVES));
   gl.uniform3f(U.uAmt, amt("naso"), amt("eyebag"), amt("wrinkle"));
+  gl.uniform2f(U.uNoseAmt, amt("bridge"), amt("tip"));
   gl.uniform3f(U.uRef, g.ref[0], g.ref[1], g.ref[2]);
   gl.uniform1f(U.uSR, g.smoothR);
   gl.uniform2f(U.uDown, -g.up[0] * .06 * g.fH / state.W, -g.up[1] * .06 * g.fH / state.H);
@@ -430,7 +441,7 @@ function anchorsFromMesh(P) {
     alaA: P[129], alaB: P[358], mouthA: P[61], mouthB: P[291],
     foldTopA: mix(P[129], P[203], .55), foldBotA: ext(206, 216, .7),
     foldTopB: mix(P[358], P[423], .55), foldBotB: ext(426, 436, .7),
-    eyeA: P[145], eyeB: P[374], jowlA: P[150], jowlB: P[379], cheekA: P[205], cheekB: P[425],
+    eyeA: P[145], eyeB: P[374], jowlA: P[150], jowlB: P[379], jawA: P[172], jawB: P[397], cheekA: P[205], cheekB: P[425],
     sideA: P[234], sideB: P[454],
   };
 }
@@ -441,7 +452,7 @@ function templateAnchors(W, H) {
     top: at(0, -50), chin: at(0, 50), root: at(0, -14), tip: at(0, 8), sub: at(0, 13),
     alaA: at(-8, 11), alaB: at(8, 11), mouthA: at(-13, 27), mouthB: at(13, 27),
     foldTopA: at(-12, 12), foldBotA: at(-18, 30), foldTopB: at(12, 12), foldBotB: at(18, 30),
-    eyeA: at(-19, -9), eyeB: at(19, -9), jowlA: at(-24, 36), jowlB: at(24, 36), cheekA: at(-22, 12), cheekB: at(22, 12),
+    eyeA: at(-19, -9), eyeB: at(19, -9), jowlA: at(-24, 36), jowlB: at(24, 36), jawA: at(-32, 26), jawB: at(32, 26), cheekA: at(-22, 12), cheekB: at(22, 12),
     sideA: at(-36, 0), sideB: at(36, 0),
   };
 }
@@ -463,11 +474,13 @@ function computeGeometry() {
   const visSoft = { A: Math.max(vis.A, vFar), B: Math.max(vis.B, vFar) };
 
   const moves = [];
-  const mv = (t, c, r, v) => { const L = len(v), cap = .5 * r; moves.push({ t, c, r, v: L > cap ? mul(v, cap / L) : v }); };
+  const mv = (t, c, r, v, inside = 0) => { const L = len(v), cap = .5 * r; moves.push({ t, c, r, v: L > cap ? mul(v, cap / L) : v, inside }); };
   // Nose tip: rotate up and project forward (forward only shows on angled views)
-  mv("tip", A.tip, .11 * fH, add(mul(up, .042 * fH), mul(fdir, .036 * fH * yaw)));
-  mv("tip", A.sub, .06 * fH, mul(up, .018 * fH));
-  for (const s of ["A", "B"]) mv("tip", A["ala" + s], .055 * fH, mul(norm(sub(A.tip, A["ala" + s])), .02 * fH * (1 - .6 * yaw) * vis[s]));
+  // Tip: mostly more projection (forward) with a little upward rotation; big upward moves read as a snub nose
+  mv("tip", A.tip, .075 * fH, add(mul(up, .014 * fH), mul(fdir, .03 * fH * yaw)));
+  mv("tip", add(A.tip, mul(fdir, -.02 * fH)), .05 * fH, mul(fdir, .01 * fH * yaw));
+  mv("tip", A.sub, .045 * fH, mul(up, .006 * fH));
+  for (const s of ["A", "B"]) mv("tip", A["ala" + s], .055 * fH, mul(norm(sub(A.tip, A["ala" + s])), .028 * fH * (1 - .6 * yaw) * vis[s]));
   // Bridge: raise the dorsum on angled views, slim the walls on front views
   const nAxis = norm(sub(A.tip, A.root)), nSide = [-nAxis[1], nAxis[0]];
   for (const t of [.22, .45, .68]) mv("bridge", mix(A.root, A.tip, t), .08 * fH, mul(fdir, .032 * fH * yaw * Math.sin(Math.PI * (t * .8 + .1))));
@@ -475,11 +488,17 @@ function computeGeometry() {
     const c = add(mix(A.root, A.tip, t), mul(nSide, sgn * .055 * fH));
     mv("bridge", c, .05 * fH, mul(nSide, -sgn * .016 * fH * (1 - yaw)));
   }
-  // Thread lift: jowls and mid-cheek pulled up and back toward the ear
+  // Thread lift: tissue along the jaw and mid-cheek pulled diagonally toward the ear, the way threads
+  // are anchored at the temple. Only the face moves (neck stays put), only on sides facing the camera,
+  // and nothing near the chin, so the jawline straightens instead of the chin sharpening.
   for (const s of ["A", "B"]) {
-    const lat = lateral(A["side" + s]), k = visSoft[s];
-    mv("lift", A["jowl" + s], .2 * fH, mul(add(mul(up, .06 * fH), mul(lat, .02 * fH)), k));
-    mv("lift", A["cheek" + s], .16 * fH, mul(add(mul(up, .03 * fH), mul(lat, .01 * fH)), k * vis[s]));
+    const lat = lateral(A["side" + s]), k = vis[s];
+    if (k < .05) continue;
+    const pull = (u, l) => mul(add(mul(up, u * fH), mul(lat, l * fH)), k);
+    mv("lift", mix(A["jowl" + s], A["jaw" + s], .45), .17 * fH, pull(.042, .032), 1);
+    mv("lift", A["jaw" + s], .13 * fH, pull(.018, .018), 1);
+    mv("lift", A["cheek" + s], .15 * fH, pull(.03, .016), 1);
+    mv("lift", mix(A["mouth" + s], A["jowl" + s], .5), .09 * fH, pull(.012, .008), 1);
   }
   // Eye bags: slight upward tuck of the lower-lid fat pad
   for (const s of ["A", "B"]) mv("eyebag", add(A["eye" + s], mul(up, -.045 * fH)), .055 * fH, mul(up, .012 * fH * visSoft[s]));
@@ -525,6 +544,21 @@ function computeGeometry() {
   }
   for (const p of [A.alaA, A.alaB, A.sub]) { xB.beginPath(); xB.arc(p[0], p[1] + .006 * fH, .022 * fH, 0, 7); xB.fill(); }
 
+  // A: face interior (warps flagged "inside" fade out past the face outline)
+  const [cI, xI] = layer();
+  if (M) { path(xI, pick(OVAL), true); xI.fill(); }
+  else { path(xI, catmull([A.top, A.sideB, A.jawB, A.jowlB, A.chin, A.jowlA, A.jawA, A.sideA]), true); xI.fill(); }
+  // Nose contour: R dorsum highlight, G side-wall shade, B tip highlight
+  const [cN1, xN1] = layer(), [cN2, xN2] = layer(), [cN3, xN3] = layer();
+  const along = (t) => mix(A.root, A.tip, t);
+  xN1.lineWidth = .02 * fH; path(xN1, [along(.12), along(.5), along(.86)], false); xN1.stroke();
+  xN2.lineWidth = .02 * fH;
+  for (const sgn of [-1, 1]) {
+    const off = (t) => add(along(t), mul(nSide, sgn * (.028 + .018 * t) * fH));
+    xN2.globalAlpha = 1 - .7 * yaw; path(xN2, [off(.15), off(.5), off(.8)], false); xN2.stroke();
+  }
+  xN3.beginPath(); xN3.arc(A.tip[0], A.tip[1], .018 * fH, 0, 7); xN3.fill();
+
   const rd = (c) => c.getContext("2d").getImageData(0, 0, MW, MH).data;
   const dR = rd(cR), dG = rd(cG), dB = rd(cB), N = MW * MH;
   const chR = new Float32Array(N), chG = new Float32Array(N), chB = new Float32Array(N);
@@ -533,9 +567,18 @@ function computeGeometry() {
   blur(chR, MW, MH, Math.max(1, Math.round(.018 * pxs)));
   blur(chG, MW, MH, Math.max(1, Math.round(.012 * pxs)));
   blur(chB, MW, MH, Math.max(1, Math.round(.012 * pxs)));
+  const dI = rd(cI), chI = new Float32Array(N);
+  for (let i = 0; i < N; i++) chI[i] = dI[i * 4 + 3] / 255;
+  blur(chI, MW, MH, Math.max(1, Math.round(.02 * pxs)));
   const mask = new Uint8Array(N * 4);
-  for (let i = 0; i < N; i++) { mask[i * 4] = chR[i] * 255; mask[i * 4 + 1] = chG[i] * 255; mask[i * 4 + 2] = chB[i] * 255; mask[i * 4 + 3] = 255; }
+  for (let i = 0; i < N; i++) { mask[i * 4] = chR[i] * 255; mask[i * 4 + 1] = chG[i] * 255; mask[i * 4 + 2] = chB[i] * 255; mask[i * 4 + 3] = chI[i] * 255; }
   upload("uMask", 1, mask, MW, MH);
+  const nose = new Uint8Array(N * 4), nl = [rd(cN1), rd(cN2), rd(cN3)].map((d, j) => {
+    const ch = new Float32Array(N); for (let i = 0; i < N; i++) ch[i] = d[i * 4 + 3] / 255;
+    blur(ch, MW, MH, Math.max(1, Math.round((j === 1 ? .014 : .01) * pxs))); return ch;
+  });
+  for (let i = 0; i < N; i++) { nose[i * 4] = nl[0][i] * 255; nose[i * 4 + 1] = nl[1][i] * 255; nose[i * 4 + 2] = nl[2][i] * 255; nose[i * 4 + 3] = 255; }
+  upload("uNose", 4, nose, MW, MH);
 
   // Reference skin colour and skin-weighted blurs (surrounding skin brightness for fold / bag fill)
   const small = document.createElement("canvas"); small.width = MW; small.height = MH;
@@ -634,7 +677,7 @@ function drawOverlay() {
 }
 let drag = null;
 // Hide points on the far side of a turned face; they sit behind the nose and only get in the way
-const HIDEABLE = /^(ala|foldTop|foldBot|jowl|cheek|side)([AB])$/;
+const HIDEABLE = /^(ala|foldTop|foldBot|jowl|jaw|cheek|side)([AB])$/;
 function shownAnchors() {
   const vis = state.geom ? state.geom.vis : { A: 1, B: 1 };
   return Object.entries(state.anchors || {}).filter(([k]) => { const m = k.match(HIDEABLE); return !m || vis[m[2]] > .35 || (drag && drag.key === k); });
