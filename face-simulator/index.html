@@ -1008,6 +1008,12 @@ async function offer(filename, blob, kind) {
     try { await downloads.save({ filename, data: blob }); setStatus("Saved " + filename + ".", "ok"); return; }
     catch (e) { if (e && e.code === "declined") { setStatus("Save cancelled.", ""); return; } if (e && e.code === "rate_limited") { setStatus("A save is already waiting for your answer.", "warn"); return; } }
   }
+  // Outside the Claude viewer (a normal website) a plain download link works
+  if (!window.claude) {
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    setStatus("Saved " + filename + " to your downloads.", "ok"); return;
+  }
   // Fallback: show it so it can be long-pressed or right-clicked to save
   const url = URL.createObjectURL(blob);
   $("sheetMedia").innerHTML = kind === "video" ? `<video src="${url}" controls autoplay loop muted playsinline></video>` : `<img src="${url}" alt="Before and after simulation">`;
