@@ -756,7 +756,19 @@ async function loadFile(file) {
   render();
 }
 for (const id of ["btnUpload", "btnUpload2"]) $(id).addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
-$("file").onchange = (e) => { loadFile(e.target.files[0]); e.target.value = ""; };
+$("file").onchange = (e) => { pickerPending = false; loadFile(e.target.files[0]); e.target.value = ""; };
+// Some in-app viewers (e.g. the Claude Android app) never open the photo picker. Opening it normally blurs or hides the page; if neither happens, explain the way out.
+let pickerPending = false;
+const pickerOpened = () => { pickerPending = false; };
+window.addEventListener("blur", pickerOpened);
+document.addEventListener("visibilitychange", () => { if (document.hidden) pickerOpened(); });
+for (const id of ["btnUpload", "btnUpload2"]) $(id).addEventListener("click", () => {
+  pickerPending = true;
+  setTimeout(() => {
+    if (pickerPending && !document.hidden) setStatus("The photo picker didn't open. The Claude app on Android can't open your gallery here. Open this page in Chrome instead: copy the page link, paste it into Chrome, sign in to Claude, then choose the photo.", "warn");
+    pickerPending = false;
+  }, 2000);
+});
 const stage = $("stage");
 stage.addEventListener("dragover", (e) => { e.preventDefault(); stage.classList.add("drag"); });
 stage.addEventListener("dragleave", () => stage.classList.remove("drag"));
